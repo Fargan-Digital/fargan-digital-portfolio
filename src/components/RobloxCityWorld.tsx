@@ -13,7 +13,12 @@ import {
   MessageSquare,
   Volume2,
   VolumeX,
-  X
+  X,
+  RotateCcw,
+  RotateCw,
+  ZoomIn,
+  ZoomOut,
+  Navigation
 } from 'lucide-react';
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
 
@@ -42,6 +47,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
 
   // Player Teleport Ref
   const playerTeleportRef = useRef<((x: number, z: number) => void) | null>(null);
+
+  // Camera Orbit & Zoom Control Refs (Google Maps style)
+  const rotateCameraRef = useRef<((delta: number) => void) | null>(null);
+  const zoomCameraRef = useRef<((delta: number) => void) | null>(null);
+  const resetCameraRef = useRef<(() => void) | null>(null);
 
   // Mobile controller touch states
   const mobileInputRef = useRef({ forward: false, backward: false, left: false, right: false, jump: false });
@@ -261,39 +271,44 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       const signMesh = new THREE.Mesh(signGeo, signMat);
       signMesh.position.set(0, b.height + 1.4, 0);
 
-      if (Math.abs(b.position[0]) > Math.abs(b.position[2])) {
-        signMesh.rotation.y = b.position[0] < 0 ? Math.PI / 2 : -Math.PI / 2;
-      }
-      bGroup.add(signMesh);
+      // Determine building facade and entrance direction
+      const isWestSide = b.id === 'roban-alam-lestari' || b.id === 'han-waste' || (b.position[0] <= -20);
+      const isEastSide = b.id === 'kavling-morowali' || b.id === 'farghan-digital-marketing' || (b.position[0] >= 20);
+      const isNorthSide = b.id === 'brandpulse' || b.id === 'anti-sobis' || b.id === 'fargan-guard-trading' || (b.position[2] <= -10);
 
-      // Entrance Glow Pad
       let padOffsetX = 0;
       let padOffsetZ = 0;
       let npcOffsetX = 0;
       let npcOffsetZ = 0;
       let npcRotationY = 0;
 
-      if (b.position[2] < -10) {
-        padOffsetZ = b.depth / 2 + 1.5;
-        npcOffsetX = -1.6;
-        npcOffsetZ = b.depth / 2 + 2.4;
-        npcRotationY = 0; // Faces south toward plaza
-      } else if (b.position[2] > 10) {
-        padOffsetZ = -b.depth / 2 - 1.5;
-        npcOffsetX = 1.6;
-        npcOffsetZ = -b.depth / 2 - 2.4;
-        npcRotationY = Math.PI; // Faces north
-      } else if (b.position[0] < -10) {
+      if (isWestSide) {
+        signMesh.rotation.y = Math.PI / 2; // sign faces East toward central road
         padOffsetX = b.width / 2 + 1.5;
-        npcOffsetX = b.width / 2 + 2.4;
-        npcOffsetZ = 1.4;
-        npcRotationY = Math.PI / 2; // Faces east
-      } else {
+        npcOffsetX = b.width / 2 + 2.3;
+        npcOffsetZ = 0;
+        npcRotationY = Math.PI / 2; // NPC stands in front, facing East
+      } else if (isEastSide) {
+        signMesh.rotation.y = -Math.PI / 2; // sign faces West toward central road
         padOffsetX = -b.width / 2 - 1.5;
-        npcOffsetX = -b.width / 2 - 2.4;
-        npcOffsetZ = -1.4;
-        npcRotationY = -Math.PI / 2; // Faces west
+        npcOffsetX = -b.width / 2 - 2.3;
+        npcOffsetZ = 0;
+        npcRotationY = -Math.PI / 2; // NPC stands in front, facing West
+      } else if (isNorthSide) {
+        signMesh.rotation.y = 0; // sign faces South toward plaza
+        padOffsetZ = b.depth / 2 + 1.5;
+        npcOffsetX = 0;
+        npcOffsetZ = b.depth / 2 + 2.3;
+        npcRotationY = 0; // NPC stands in front, facing South
+      } else {
+        // South buildings (fargan-kopi, farghan-butik, hendar-fitness)
+        signMesh.rotation.y = Math.PI; // sign faces North toward plaza
+        padOffsetZ = -b.depth / 2 - 1.5;
+        npcOffsetX = 0;
+        npcOffsetZ = -b.depth / 2 - 2.3;
+        npcRotationY = Math.PI; // NPC stands in front, facing North
       }
+      bGroup.add(signMesh);
 
       const padGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.1, 16);
       const padMat = new THREE.MeshBasicMaterial({ 
@@ -567,6 +582,129 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       playerGroup.position.y = 1.35;
     };
 
+    // Camera Orbit & Zoom State (Google Maps style)
+    let cameraAngle = 0; // Azimuth yaw (0 = North)
+    let targetCameraAngle = 0;
+
+    let cameraPitch = isMobile ? 0.44 : 0.40; // Elevation pitch
+    let targetCameraPitch = isMobile ? 0.44 : 0.40;
+
+    let cameraDistance = isMobile ? 12.0 : 9.5; // Zoom distance
+    let targetCameraDistance = isMobile ? 12.0 : 9.5;
+
+    const MIN_DISTANCE = 4.5;
+    const MAX_DISTANCE = 32.0;
+    const MIN_PITCH = 0.15;
+    const MAX_PITCH = 0.88;
+
+    rotateCameraRef.current = (delta: number) => {
+      targetCameraAngle += delta;
+    };
+    zoomCameraRef.current = (delta: number) => {
+      targetCameraDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetCameraDistance + delta));
+    };
+    resetCameraRef.current = () => {
+      targetCameraAngle = 0;
+      targetCameraPitch = isMobile ? 0.44 : 0.40;
+      targetCameraDistance = isMobile ? 12.0 : 9.5;
+    };
+
+    // Mouse & Touch Orbit / Pinch Controls (Google Maps style)
+    let isDragging = false;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+    let lastPinchDist = 0;
+
+    // Desktop Mouse Drag
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return; // Only left-click
+      isDragging = true;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastPointerX;
+      const dy = e.clientY - lastPointerY;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
+
+      targetCameraAngle -= dx * 0.007;
+      targetCameraPitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, targetCameraPitch + dy * 0.005));
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+    };
+
+    // Desktop Mouse Wheel Zoom
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomDelta = e.deltaY * 0.015;
+      targetCameraDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetCameraDistance + zoomDelta));
+    };
+
+    // Mobile Touch Drag & Pinch-to-Zoom
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        lastPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1 && isDragging) {
+        if (e.cancelable) e.preventDefault();
+        const dx = e.touches[0].clientX - lastPointerX;
+        const dy = e.touches[0].clientY - lastPointerY;
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+
+        targetCameraAngle -= dx * 0.008;
+        targetCameraPitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, targetCameraPitch + dy * 0.006));
+      } else if (e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (lastPinchDist > 0) {
+          const pinchDelta = (lastPinchDist - dist) * 0.05;
+          targetCameraDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetCameraDistance + pinchDelta));
+        }
+        lastPinchDist = dist;
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        isDragging = false;
+        lastPinchDist = 0;
+      } else if (e.touches.length === 1) {
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+        isDragging = true;
+        lastPinchDist = 0;
+      }
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    container.addEventListener('wheel', onWheel, { passive: false });
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
     // Movement Physics & State
     const keys: Record<string, boolean> = {};
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -613,19 +751,37 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       const right = keys['d'] || keys['arrowright'] || mobileInputRef.current.right;
       const jump = (keys[' '] || mobileInputRef.current.jump) && playerGroup.position.y <= 1.36;
 
-      let moveX = 0;
-      let moveZ = 0;
-      if (forward) moveZ -= 1;
-      if (backward) moveZ += 1;
-      if (left) moveX -= 1;
-      if (right) moveX += 1;
+      // Camera-relative horizontal vectors (Right on D-Pad is always right on screen, Up is always up into screen)
+      const forwardX = -Math.sin(cameraAngle);
+      const forwardZ = -Math.cos(cameraAngle);
+      const rightX = Math.cos(cameraAngle);
+      const rightZ = -Math.sin(cameraAngle);
 
-      const isMoving = moveX !== 0 || moveZ !== 0;
+      let moveDirX = 0;
+      let moveDirZ = 0;
+      if (forward) {
+        moveDirX += forwardX;
+        moveDirZ += forwardZ;
+      }
+      if (backward) {
+        moveDirX -= forwardX;
+        moveDirZ -= forwardZ;
+      }
+      if (left) {
+        moveDirX -= rightX;
+        moveDirZ -= rightZ;
+      }
+      if (right) {
+        moveDirX += rightX;
+        moveDirZ += rightZ;
+      }
+
+      const isMoving = moveDirX !== 0 || moveDirZ !== 0;
 
       if (isMoving) {
-        const len = Math.hypot(moveX, moveZ);
-        const normX = (moveX / len) * moveSpeed;
-        const normZ = (moveZ / len) * moveSpeed;
+        const len = Math.hypot(moveDirX, moveDirZ);
+        const normX = (moveDirX / len) * moveSpeed;
+        const normZ = (moveDirZ / len) * moveSpeed;
 
         playerGroup.position.x += normX;
         playerGroup.position.z += normZ;
@@ -697,15 +853,25 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         setDismissedId(null);
       }
 
-      // Camera Follow
-      const isMob = checkIsMobile();
-      const currentCameraOffset = isMob 
-        ? new THREE.Vector3(0, 6.2, 13.2) 
-        : new THREE.Vector3(0, 4.8, 9.2);
+      // Smooth Camera Interpolation (Google Maps Orbit & Zoom)
+      cameraAngle += (targetCameraAngle - cameraAngle) * 0.12;
+      cameraPitch += (targetCameraPitch - cameraPitch) * 0.12;
+      cameraDistance += (targetCameraDistance - cameraDistance) * 0.12;
 
-      const targetCamPos = playerGroup.position.clone().add(currentCameraOffset);
-      camera.position.lerp(targetCamPos, 0.08);
-      camera.lookAt(playerGroup.position.x, playerGroup.position.y + 0.9, playerGroup.position.z);
+      const cosP = Math.cos(cameraPitch);
+      const sinP = Math.sin(cameraPitch);
+      const camOffsetX = -Math.sin(cameraAngle) * cosP * cameraDistance;
+      const camOffsetZ = Math.cos(cameraAngle) * cosP * cameraDistance;
+      const camOffsetY = sinP * cameraDistance + 1.2;
+
+      const targetCamPos = new THREE.Vector3(
+        playerGroup.position.x + camOffsetX,
+        playerGroup.position.y + camOffsetY,
+        playerGroup.position.z + camOffsetZ
+      );
+
+      camera.position.lerp(targetCamPos, 0.14);
+      camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.0, playerGroup.position.z);
 
       renderer.render(scene, camera);
     };
@@ -727,6 +893,14 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('resize', handleResize);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
       cancelAnimationFrame(animId);
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -1036,22 +1210,76 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* CONTROLS HINT NOTIFICATION (DESKTOP) */}
+      {/* CONTROLS & GESTURE HINT NOTIFICATION */}
       {/* ========================================================= */}
       {controlsHintVisible && (
-        <div className="hidden sm:block absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-          <div className="bg-slate-950/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-xl flex items-center gap-3 text-xs text-slate-300">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>Gunakan tombol <strong>W, A, S, D</strong> untuk berjalan & <strong>SPASI</strong> untuk melompat</span>
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto max-w-[92vw]">
+          <div className="bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-cyan-500/30 shadow-xl flex items-center gap-2 text-[11px] text-slate-300">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 animate-pulse" />
+            <span className="truncate">
+              Geser layar untuk putar sudut 360° • Cubit layar untuk zoom (seperti Google Maps)
+            </span>
             <button 
               onClick={() => setControlsHintVisible(false)}
-              className="text-slate-400 hover:text-white ml-1 cursor-pointer"
+              className="text-slate-400 hover:text-white ml-1 cursor-pointer font-bold"
             >
               ✕
             </button>
           </div>
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* GOOGLE MAPS STYLE CAMERA CONTROL TOOLBAR (ORBIT & ZOOM) */}
+      {/* ========================================================= */}
+      <div className="absolute bottom-24 right-3 sm:bottom-6 sm:right-6 z-30 pointer-events-auto flex flex-col items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-2xl">
+        {/* Reset / North */}
+        <button
+          onClick={() => resetCameraRef.current?.()}
+          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 transition-colors shadow active:scale-95 cursor-pointer"
+          title="Reset Sudut Pandang (Arah Utara)"
+        >
+          <Navigation className="w-4 h-4" />
+        </button>
+
+        {/* Rotate Left */}
+        <button
+          onClick={() => rotateCameraRef.current?.(-Math.PI / 4)}
+          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
+          title="Putar Kamera ke Kiri (45°)"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+
+        {/* Rotate Right */}
+        <button
+          onClick={() => rotateCameraRef.current?.(Math.PI / 4)}
+          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
+          title="Putar Kamera ke Kanan (45°)"
+        >
+          <RotateCw className="w-4 h-4" />
+        </button>
+
+        <div className="w-4 h-px bg-white/10 my-0.5" />
+
+        {/* Zoom In */}
+        <button
+          onClick={() => zoomCameraRef.current?.(-2.5)}
+          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
+          title="Perbesar / Dekatkan Tampilan (+)"
+        >
+          <ZoomIn className="w-4 h-4" />
+        </button>
+
+        {/* Zoom Out */}
+        <button
+          onClick={() => zoomCameraRef.current?.(2.5)}
+          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
+          title="Perkecil / Jauhkan Tampilan (-)"
+        >
+          <ZoomOut className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* ========================================================= */}
       {/* MOBILE TOUCH CONTROLS (VIRTUAL D-PAD & JUMP) */}
