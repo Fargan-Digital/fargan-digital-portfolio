@@ -29,6 +29,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   const [activePrompt, setActivePrompt] = useState<CityBuilding | null>(null);
   const [playerCoord, setPlayerCoord] = useState<{ x: number; z: number }>({ x: 0, z: 6 });
   const [controlsHintVisible, setControlsHintVisible] = useState(true);
+  const [mobileRadarOpen, setMobileRadarOpen] = useState(false);
 
   // Player Teleport Ref
   const playerTeleportRef = useRef<((x: number, z: number) => void) | null>(null);
@@ -53,13 +54,18 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     const container = mountRef.current;
     if (!container) return;
 
+    // Detect mobile viewport
+    const checkIsMobile = () => container.clientWidth < 640 || container.clientWidth < container.clientHeight;
+    const isMobile = checkIsMobile();
+
     // 1. Three.js Scene, Camera, Renderer
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x060911);
-    scene.fog = new THREE.FogExp2(0x060911, 0.016);
+    scene.fog = new THREE.FogExp2(0x060911, 0.015);
 
+    // Dynamic FOV for mobile to provide wide perspective and breathing room
     const camera = new THREE.PerspectiveCamera(
-      52,
+      isMobile ? 65 : 52,
       container.clientWidth / container.clientHeight,
       0.1,
       180
@@ -126,7 +132,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     plaza.receiveShadow = true;
     scene.add(plaza);
 
-    // Center fountain hologram
+    // Center fountain monument
     const monumentGeo = new THREE.CylinderGeometry(0.8, 1.2, 3, 8);
     const monumentMat = new THREE.MeshStandardMaterial({ 
       color: 0x00e5ff, 
@@ -249,7 +255,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       scene.add(light);
     };
 
-    // Boulevard lights
     const lightCoords = [
       [-6, -6], [6, -6], [-6, 6], [6, 6],
       [-6, -18], [6, -18], [-6, 18], [6, 18],
@@ -353,7 +358,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     orb.position.set(0.9, 1.9, -0.4);
     playerGroup.add(orb);
 
-    // Spawn character at center facing BrandPulse
+    // Spawn character at center facing North
     playerGroup.position.set(0, 1.35, 6);
     scene.add(playerGroup);
 
@@ -398,8 +403,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       }
       return null;
     };
-
-    const cameraOffset = new THREE.Vector3(0, 4.8, 9.2);
 
     // 7. Animation Loop
     let animId: number;
@@ -482,10 +485,16 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       const near = checkNearestBuilding(playerGroup.position.x, playerGroup.position.z);
       setActivePrompt(near);
 
-      // Camera Follow
-      const targetCamPos = playerGroup.position.clone().add(cameraOffset);
+      // Responsive Camera Follow Offset:
+      // On mobile / portrait, pull the camera higher & further back so character is unobstructed
+      const isMob = checkIsMobile();
+      const currentCameraOffset = isMob 
+        ? new THREE.Vector3(0, 6.2, 13.2) 
+        : new THREE.Vector3(0, 4.8, 9.2);
+
+      const targetCamPos = playerGroup.position.clone().add(currentCameraOffset);
       camera.position.lerp(targetCamPos, 0.08);
-      camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1, playerGroup.position.z);
+      camera.lookAt(playerGroup.position.x, playerGroup.position.y + 0.9, playerGroup.position.z);
 
       renderer.render(scene, camera);
     };
@@ -494,6 +503,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
 
     const handleResize = () => {
       if (!container) return;
+      const isMob = checkIsMobile();
+      camera.fov = isMob ? 65 : 52;
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
@@ -519,9 +530,22 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
       {/* ========================================================= */}
-      {/* ROBLOX HUD OVERLAY: RADAR MINI-MAP & METRICS */}
+      {/* MOBILE RADAR TOGGLE BUTTON (COMPACT PILL IN TOP-LEFT) */}
       {/* ========================================================= */}
-      <div className="absolute top-16 left-4 z-30 pointer-events-none">
+      <div className="sm:hidden absolute top-14 left-3 z-30 pointer-events-auto">
+        <button
+          onClick={() => setMobileRadarOpen(!mobileRadarOpen)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/85 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold shadow-lg cursor-pointer active:scale-95"
+        >
+          <Compass className={`w-3.5 h-3.5 text-cyan-400 ${mobileRadarOpen ? 'rotate-180' : ''}`} />
+          <span>{mobileRadarOpen ? 'Tutup Peta ✕' : 'Peta Radar (10)'}</span>
+        </button>
+      </div>
+
+      {/* ========================================================= */}
+      {/* ROBLOX HUD OVERLAY: RADAR MINI-MAP & METRICS (DESKTOP) */}
+      {/* ========================================================= */}
+      <div className="hidden sm:block absolute top-16 left-4 z-30 pointer-events-none">
         <div className="bg-slate-950/80 backdrop-blur-md rounded-2xl p-3 border border-white/10 shadow-xl space-y-2 pointer-events-auto">
           <div className="flex items-center justify-between gap-3 text-[11px] font-mono text-cyan-400 font-bold">
             <div className="flex items-center gap-1.5">
@@ -533,15 +557,12 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
 
           {/* Mini-Map Radar Canvas View */}
           <div className="relative w-36 h-36 rounded-xl bg-slate-900/90 border border-cyan-500/30 overflow-hidden flex items-center justify-center">
-            {/* Radar Grid Lines */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,162,255,0.15)_0%,transparent_70%)]" />
             <div className="absolute inset-x-0 top-1/2 h-px bg-cyan-500/20" />
             <div className="absolute inset-y-0 left-1/2 w-px bg-cyan-500/20" />
             <div className="absolute w-24 h-24 rounded-full border border-cyan-500/20" />
 
-            {/* Buildings on Mini-Map */}
             {portfolioProjects.map(b => {
-              // Map from world [-48, 48] to mini-map [0, 144]
               const mapX = 72 + (b.position[0] / 48) * 60;
               const mapY = 72 + (b.position[2] / 48) * 60;
               const isNear = activePrompt?.id === b.id;
@@ -561,7 +582,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               );
             })}
 
-            {/* Player Marker in Radar */}
             <div 
               className="absolute w-3 h-3 rounded-full bg-cyan-400 ring-4 ring-cyan-400/40 -translate-x-1/2 -translate-y-1/2 shadow-lg"
               style={{
@@ -579,7 +599,89 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* ROBLOX HUD OVERLAY: QUICK TELEPORT / DIRECTORY */}
+      {/* MOBILE RADAR DROPDOWN MODAL (WHEN TAPPED) */}
+      {/* ========================================================= */}
+      {mobileRadarOpen && (
+        <div className="sm:hidden absolute top-24 left-3 right-3 z-40 bg-slate-950/95 backdrop-blur-xl rounded-2xl p-4 border border-cyan-500/40 shadow-2xl space-y-3 animate-fade-in pointer-events-auto">
+          <div className="flex items-center justify-between text-xs font-mono text-cyan-300 font-bold border-b border-white/10 pb-2">
+            <div className="flex items-center gap-1.5">
+              <Compass className="w-4 h-4 text-cyan-400" />
+              <span>RADAR KOTA (10 KARYA)</span>
+            </div>
+            <button
+              onClick={() => setMobileRadarOpen(false)}
+              className="text-slate-400 hover:text-white p-1 font-bold text-sm"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center">
+            <div className="relative w-44 h-44 rounded-2xl bg-slate-900 border border-cyan-500/30 overflow-hidden flex items-center justify-center shadow-inner">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,162,255,0.18)_0%,transparent_70%)]" />
+              <div className="absolute inset-x-0 top-1/2 h-px bg-cyan-500/20" />
+              <div className="absolute inset-y-0 left-1/2 w-px bg-cyan-500/20" />
+              <div className="absolute w-32 h-32 rounded-full border border-cyan-500/20" />
+
+              {portfolioProjects.map(b => {
+                const mapX = 88 + (b.position[0] / 48) * 75;
+                const mapY = 88 + (b.position[2] / 48) * 75;
+                const isNear = activePrompt?.id === b.id;
+                return (
+                  <div
+                    key={b.id}
+                    title={b.name}
+                    className={`absolute w-3 h-3 rounded-sm -translate-x-1/2 -translate-y-1/2 transition-all ${
+                      isNear ? 'ring-2 ring-white scale-150 animate-pulse' : ''
+                    }`}
+                    style={{
+                      left: `${mapX}px`,
+                      top: `${mapY}px`,
+                      backgroundColor: `#${b.neonColor.toString(16).padStart(6, '0')}`
+                    }}
+                  />
+                );
+              })}
+
+              <div 
+                className="absolute w-3.5 h-3.5 rounded-full bg-cyan-400 ring-4 ring-cyan-400/40 -translate-x-1/2 -translate-y-1/2 shadow-lg"
+                style={{
+                  left: `${88 + (playerCoord.x / 48) * 75}px`,
+                  top: `${88 + (playerCoord.z / 48) * 75}px`
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="text-[10px] text-center text-slate-400 font-mono">
+            Titik warna menunjukkan lokasi gedung. Tekan nama gedung di bawah untuk teleport:
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pt-1">
+            {portfolioProjects.map(b => (
+              <button
+                key={b.id}
+                onClick={() => {
+                  if (playerTeleportRef.current) {
+                    playerTeleportRef.current(b.position[0], b.position[2] + (b.position[2] < 0 ? 5 : -5));
+                  }
+                  setMobileRadarOpen(false);
+                }}
+                className="p-1.5 rounded-lg bg-slate-900 border border-white/5 text-left flex items-center gap-1.5 text-[10px] text-slate-300 active:bg-cyan-500/20"
+              >
+                <span 
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: `#${b.neonColor.toString(16).padStart(6, '0')}` }}
+                />
+                <span className="truncate">{b.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* ROBLOX HUD OVERLAY: QUICK TELEPORT / DIRECTORY (DESKTOP) */}
       {/* ========================================================= */}
       <div className="absolute top-16 right-4 z-30 hidden sm:block">
         <div className="bg-slate-950/80 backdrop-blur-md rounded-2xl p-3 border border-white/10 shadow-xl max-h-72 overflow-y-auto w-52 space-y-1 text-xs">
@@ -612,29 +714,29 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* ROBLOX PROXIMITY PROMPT MODAL (WHEN NEAR A BUILDING) */}
+      {/* ROBLOX PROXIMITY PROMPT MODAL (SAFE ELEVATION ON MOBILE) */}
       {/* ========================================================= */}
       {activePrompt && (
-        <div className="absolute bottom-24 sm:bottom-12 left-1/2 -translate-x-1/2 z-40 animate-bounce">
-          <div className="roblox-panel p-4 px-6 flex items-center gap-4 border-2 border-cyan-400 shadow-2xl bg-slate-950/95 max-w-md">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-lg shadow-lg shadow-cyan-500/50 flex-shrink-0">
+        <div className="absolute bottom-40 sm:bottom-12 left-1/2 -translate-x-1/2 z-40 animate-bounce w-[92vw] sm:w-auto max-w-md pointer-events-auto">
+          <div className="roblox-panel p-3.5 sm:p-4 px-4 sm:px-6 flex items-center gap-3 sm:gap-4 border-2 border-cyan-400 shadow-2xl bg-slate-950/95">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-base sm:text-lg shadow-lg shadow-cyan-500/50 flex-shrink-0">
               E
             </div>
 
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">
+                <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">
                   {activePrompt.badge}
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Didekati</span>
+                <span className="text-[10px] text-slate-400 font-mono">Didekati</span>
               </div>
-              <h4 className="text-sm font-black text-white">{activePrompt.name}</h4>
-              <p className="text-[11px] text-slate-300 line-clamp-1">{activePrompt.subtitle}</p>
+              <h4 className="text-xs sm:text-sm font-black text-white truncate">{activePrompt.name}</h4>
+              <p className="text-[10px] sm:text-[11px] text-slate-300 truncate">{activePrompt.subtitle}</p>
             </div>
 
             <button
               onClick={() => onBuildingSelect(activePrompt)}
-              className="ml-2 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/30 cursor-pointer flex-shrink-0"
+              className="px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/30 cursor-pointer flex-shrink-0 active:scale-95"
             >
               <span>KUNJUNGI</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -644,10 +746,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* CONTROLS HINT NOTIFICATION */}
+      {/* CONTROLS HINT NOTIFICATION (DESKTOP ONLY) */}
       {/* ========================================================= */}
       {controlsHintVisible && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+        <div className="hidden sm:block absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
           <div className="bg-slate-950/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-xl flex items-center gap-3 text-xs text-slate-300">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
             <span>Gunakan tombol <strong>W, A, S, D</strong> untuk berjalan & <strong>SPASI</strong> untuk melompat</span>
@@ -664,54 +766,64 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       {/* ========================================================= */}
       {/* MOBILE TOUCH CONTROLS (VIRTUAL D-PAD & JUMP) */}
       {/* ========================================================= */}
-      <div className="sm:hidden absolute bottom-5 left-4 z-30 pointer-events-auto">
-        <div className="grid grid-cols-3 gap-1.5 w-32 h-32 p-1.5 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-2xl">
+      <div className="sm:hidden absolute bottom-5 left-3 z-30 pointer-events-auto">
+        <div className="grid grid-cols-3 gap-1.5 w-32 h-32 p-1.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-white/10 shadow-2xl">
           <div />
           <button
-            onTouchStart={() => { mobileInputRef.current.forward = true; }}
-            onTouchEnd={() => { mobileInputRef.current.forward = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/90 active:bg-cyan-500 text-white active:text-slate-950 text-xs font-bold shadow"
+            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.forward = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.forward = false; }}
+            onMouseDown={() => { mobileInputRef.current.forward = true; }}
+            onMouseUp={() => { mobileInputRef.current.forward = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
           >
-            <ArrowUp className="w-5 h-5" />
+            <ArrowUp className="w-6 h-6" />
           </button>
           <div />
 
           <button
-            onTouchStart={() => { mobileInputRef.current.left = true; }}
-            onTouchEnd={() => { mobileInputRef.current.left = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/90 active:bg-cyan-500 text-white active:text-slate-950 text-xs font-bold shadow"
+            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.left = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.left = false; }}
+            onMouseDown={() => { mobileInputRef.current.left = true; }}
+            onMouseUp={() => { mobileInputRef.current.left = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="flex items-center justify-center text-[10px] text-slate-500 font-mono font-bold">
+          <div className="flex items-center justify-center text-[9px] text-cyan-400/70 font-mono font-bold">
             MOVE
           </div>
           <button
-            onTouchStart={() => { mobileInputRef.current.right = true; }}
-            onTouchEnd={() => { mobileInputRef.current.right = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/90 active:bg-cyan-500 text-white active:text-slate-950 text-xs font-bold shadow"
+            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.right = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.right = false; }}
+            onMouseDown={() => { mobileInputRef.current.right = true; }}
+            onMouseUp={() => { mobileInputRef.current.right = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-6 h-6" />
           </button>
 
           <div />
           <button
-            onTouchStart={() => { mobileInputRef.current.backward = true; }}
-            onTouchEnd={() => { mobileInputRef.current.backward = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/90 active:bg-cyan-500 text-white active:text-slate-950 text-xs font-bold shadow"
+            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.backward = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.backward = false; }}
+            onMouseDown={() => { mobileInputRef.current.backward = true; }}
+            onMouseUp={() => { mobileInputRef.current.backward = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
           >
-            <ArrowDown className="w-5 h-5" />
+            <ArrowDown className="w-6 h-6" />
           </button>
           <div />
         </div>
       </div>
 
       {/* Mobile Jump Button */}
-      <div className="sm:hidden absolute bottom-5 right-4 z-30 pointer-events-auto">
+      <div className="sm:hidden absolute bottom-5 right-3 z-30 pointer-events-auto">
         <button
-          onTouchStart={() => { mobileInputRef.current.jump = true; }}
-          onTouchEnd={() => { mobileInputRef.current.jump = false; }}
-          className="w-16 h-16 rounded-full bg-cyan-500 active:bg-cyan-400 text-slate-950 font-black text-xs shadow-2xl flex flex-col items-center justify-center gap-0.5 border-2 border-white/20 active:scale-95"
+          onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.jump = true; }}
+          onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.jump = false; }}
+          onMouseDown={() => { mobileInputRef.current.jump = true; }}
+          onMouseUp={() => { mobileInputRef.current.jump = false; }}
+          className="w-16 h-16 rounded-full bg-cyan-500 active:bg-cyan-400 text-slate-950 font-black text-xs shadow-2xl flex flex-col items-center justify-center gap-0.5 border-2 border-white/20 active:scale-95 touch-none"
         >
           <Footprints className="w-5 h-5" />
           <span>JUMP</span>

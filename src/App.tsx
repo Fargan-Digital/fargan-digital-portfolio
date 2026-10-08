@@ -142,34 +142,34 @@ export function App() {
         {viewMode === 'city' ? (
           <div className="relative w-full h-full flex flex-col justify-between">
             {/* Topbar HUD */}
-            <header className="absolute top-0 left-0 right-0 z-40 px-5 py-3.5 flex items-center justify-between border-b border-white/10 bg-slate-950/70 backdrop-blur-md">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-red-600/30 border border-red-400/50">
+            <header className="absolute top-0 left-0 right-0 z-40 px-3 sm:px-5 py-2 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/75 backdrop-blur-md">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-600 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-red-600/30 border border-red-400/50 flex-shrink-0">
                   R
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-white text-sm tracking-wide">FARGAN ROBLOX CITY</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono animate-pulse">
-                      10 GEDUNG INTERAKTIF
+                    <span className="font-extrabold text-white text-xs sm:text-sm tracking-wide">FARGAN ROBLOX CITY</span>
+                    <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono animate-pulse">
+                      10 KARYA
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400 font-mono">Gunakan W,A,S,D untuk berjalan mendekati gedung karya</p>
+                  <p className="hidden md:block text-[10px] text-slate-400 font-mono">Gunakan W,A,S,D untuk berjalan mendekati gedung karya</p>
                 </div>
               </div>
 
               {/* Mode Switcher Buttons */}
-              <div className="flex items-center gap-2">
-                <div className="flex bg-slate-900/90 rounded-xl p-1 border border-white/10 text-xs">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex bg-slate-900/90 rounded-xl p-0.5 sm:p-1 border border-white/10 text-xs">
                   <button
                     onClick={() => {
                       setViewMode('city');
                       playSfx(520, 'sine');
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer bg-cyan-500 text-slate-950 shadow-md"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer bg-cyan-500 text-slate-950 shadow-md text-[11px] sm:text-xs"
                   >
                     <Gamepad2 className="w-3.5 h-3.5" />
-                    <span>Jalan di Kota 3D</span>
+                    <span>Kota 3D</span>
                   </button>
 
                   <button
@@ -177,10 +177,10 @@ export function App() {
                       setViewMode('cinematic');
                       playSfx(520, 'sine');
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer text-slate-400 hover:text-white"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer text-slate-400 hover:text-white text-[11px] sm:text-xs"
                   >
                     <Tv className="w-3.5 h-3.5" />
-                    <span>Mode Presentasi</span>
+                    <span>Presentasi</span>
                   </button>
                 </div>
 
@@ -189,10 +189,10 @@ export function App() {
                     setSoundEnabled(!soundEnabled);
                     playSfx(520, 'sine');
                   }}
-                  className="p-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer"
+                  className="p-1.5 sm:p-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer"
                   title="Toggle Sound Effects"
                 >
-                  {soundEnabled ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4" />}
+                  {soundEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" /> : <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                 </button>
               </div>
             </header>
