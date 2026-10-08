@@ -19,6 +19,7 @@ import {
   Navigation
 } from 'lucide-react';
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
+import { soundEngine } from '../utils/audioManager';
 
 export { type CityBuilding } from '../data/portfolioProjects';
 
@@ -43,6 +44,22 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   const [controlsHintVisible, setControlsHintVisible] = useState(true);
   const [mobileRadarOpen, setMobileRadarOpen] = useState(false);
 
+  // Sync refs so Three.js scene never needs to re-mount when callbacks or IDs change
+  const onBuildingSelectRef = useRef(onBuildingSelect);
+  useEffect(() => {
+    onBuildingSelectRef.current = onBuildingSelect;
+  }, [onBuildingSelect]);
+
+  const dismissedIdRef = useRef(dismissedId);
+  useEffect(() => {
+    dismissedIdRef.current = dismissedId;
+  }, [dismissedId]);
+
+  const activeDialogueRef = useRef(activeDialogue);
+  useEffect(() => {
+    activeDialogueRef.current = activeDialogue;
+  }, [activeDialogue]);
+
   // Player Teleport Ref
   const playerTeleportRef = useRef<((x: number, z: number) => void) | null>(null);
 
@@ -56,22 +73,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   // Web Audio Typewriter Click SFX
   const playTypewriterClick = useCallback(() => {
     if (!dialogueSfxEnabled) return;
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'triangle';
-      // Blip frequency 680Hz - 860Hz like cute RPG dialogue
-      osc.frequency.setValueAtTime(680 + Math.random() * 180, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.035, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.03);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.032);
-    } catch {
-      // Audio fallback
-    }
+    soundEngine.playTypewriterBlip();
   }, [dialogueSfxEnabled]);
 
   // Handle Typewriter Text Animation
@@ -475,6 +477,111 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     ];
     lightCoords.forEach(([lx, lz]) => addStreetLight(lx, lz));
 
+    // =========================================================
+    // LIVING CITY: HOVER CARS, FLYING DRONE & AMBIENT PARTICLES
+    // =========================================================
+    const hoverCars: { mesh: THREE.Group; axis: 'x' | 'z'; dir: number; speed: number; min: number; max: number }[] = [];
+
+    const createHoverCar = (color: number, lightColor: number) => {
+      const car = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.45, 2.8),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.8 })
+      );
+      body.position.y = 0.55;
+      car.add(body);
+
+      const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2, 0.35, 1.4),
+        new THREE.MeshStandardMaterial({ color: 0x0A0F1D, roughness: 0.1 })
+      );
+      glass.position.set(0, 0.85, -0.2);
+      car.add(glass);
+
+      const lightGeo = new THREE.BoxGeometry(0.35, 0.12, 0.05);
+      const headL = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: lightColor }));
+      headL.position.set(-0.5, 0.55, -1.41);
+      const headR = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: lightColor }));
+      headR.position.set(0.5, 0.55, -1.41);
+      car.add(headL, headR);
+
+      const tailL = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xFF0055 }));
+      tailL.position.set(-0.5, 0.55, 1.41);
+      const tailR = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xFF0055 }));
+      tailR.position.set(0.5, 0.55, 1.41);
+      car.add(tailL, tailR);
+
+      const glow = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.4, 2.4),
+        new THREE.MeshBasicMaterial({ color: lightColor, transparent: true, opacity: 0.45 })
+      );
+      glow.rotation.x = -Math.PI / 2;
+      glow.position.y = 0.08;
+      car.add(glow);
+
+      return car;
+    };
+
+    const car1 = createHoverCar(0x0F2838, 0x00E5FF);
+    car1.position.set(-8, 0, -35);
+    scene.add(car1);
+    hoverCars.push({ mesh: car1, axis: 'z', dir: 1, speed: 0.30, min: -42, max: 42 });
+
+    const car2 = createHoverCar(0x380F28, 0xFF0077);
+    car2.position.set(8, 0, 35);
+    car2.rotation.y = Math.PI;
+    scene.add(car2);
+    hoverCars.push({ mesh: car2, axis: 'z', dir: -1, speed: 0.28, min: -42, max: 42 });
+
+    const car3 = createHoverCar(0x35250A, 0xF59E0B);
+    car3.position.set(-35, 0, 32);
+    car3.rotation.y = Math.PI / 2;
+    scene.add(car3);
+    hoverCars.push({ mesh: car3, axis: 'x', dir: 1, speed: 0.26, min: -42, max: 42 });
+
+    // Flying AI Drone in city skyline
+    const droneGroup = new THREE.Group();
+    const droneBody = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 0.22, 0.8),
+      new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.3 })
+    );
+    droneGroup.add(droneBody);
+
+    const ringGeo = new THREE.RingGeometry(0.25, 0.38, 12);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00E5FF, side: THREE.DoubleSide });
+    [[-0.55, -0.55], [0.55, -0.55], [-0.55, 0.55], [0.55, 0.55]].forEach(([rx, rz]) => {
+      const r = new THREE.Mesh(ringGeo, ringMat);
+      r.rotation.x = Math.PI / 2;
+      r.position.set(rx, 0.1, rz);
+      droneGroup.add(r);
+    });
+
+    const droneLight = new THREE.PointLight(0x00E5FF, 1.2, 14);
+    droneLight.position.set(0, -0.3, 0);
+    droneGroup.add(droneLight);
+
+    droneGroup.position.set(0, 11, 0);
+    scene.add(droneGroup);
+
+    // Atmospheric Floating Cyber Sparks
+    const particleCount = 70;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePositions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      particlePositions[i * 3] = (Math.random() - 0.5) * 80;
+      particlePositions[i * 3 + 1] = 0.5 + Math.random() * 12;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+    }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    const particleMat = new THREE.PointsMaterial({
+      color: 0x00E5FF,
+      size: 0.25,
+      transparent: true,
+      opacity: 0.6
+    });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+
     // 6. Playable Roblox Player Character Rig
     const playerGroup = new THREE.Group();
 
@@ -716,6 +823,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     const gravity = -0.012;
     let velocityY = 0;
     let walkCycle = 0;
+    let stepTimer = 0;
 
     const checkNearestBuilding = (px: number, pz: number): CityBuilding | null => {
       for (const b of portfolioProjects) {
@@ -788,7 +896,15 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         rightLeg.rotation.x = -Math.sin(walkCycle) * 0.7;
         leftArm.rotation.x = -Math.sin(walkCycle) * 0.7;
         rightArm.rotation.x = Math.sin(walkCycle) * 0.7;
+
+        // Footstep sound cadence
+        stepTimer += delta;
+        if (stepTimer >= 0.32) {
+          stepTimer = 0;
+          soundEngine.playFootstep();
+        }
       } else {
+        stepTimer = 0.28;
         walkCycle = 0;
         leftLeg.rotation.x *= 0.8;
         rightLeg.rotation.x *= 0.8;
@@ -797,8 +913,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       }
 
       // Jump
-      if (jump) {
+      if (jump && playerGroup.position.y <= 1.36) {
         velocityY = jumpStrength;
+        soundEngine.playJump();
       }
       playerGroup.position.y += velocityY;
       velocityY += gravity;
@@ -811,12 +928,41 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       playerGroup.position.x = Math.max(-48, Math.min(48, playerGroup.position.x));
       playerGroup.position.z = Math.max(-48, Math.min(48, playerGroup.position.z));
 
-      // AI Orb
+      // AI Orb & Central Monument
       orb.position.y = 1.8 + Math.sin(elapsedTime * 3) * 0.2;
       orb.rotation.y += 0.04;
       monument.rotation.y += 0.01;
 
-      // Animate NPCs: Waving arm when player approaches
+      // Animate Living City: Hover Cars
+      hoverCars.forEach(car => {
+        if (car.axis === 'z') {
+          car.mesh.position.z += car.speed * car.dir;
+          if (car.dir > 0 && car.mesh.position.z > car.max) car.mesh.position.z = car.min;
+          if (car.dir < 0 && car.mesh.position.z < car.min) car.mesh.position.z = car.max;
+        } else {
+          car.mesh.position.x += car.speed * car.dir;
+          if (car.dir > 0 && car.mesh.position.x > car.max) car.mesh.position.x = car.min;
+          if (car.dir < 0 && car.mesh.position.x < car.min) car.mesh.position.x = car.max;
+        }
+        car.mesh.position.y = 0.45 + Math.sin(elapsedTime * 6 + car.speed * 10) * 0.05;
+      });
+
+      // Animate Living City: Flying AI Drone
+      droneGroup.position.x = Math.sin(elapsedTime * 0.35) * 24;
+      droneGroup.position.z = Math.cos(elapsedTime * 0.35) * 19;
+      droneGroup.position.y = 11 + Math.sin(elapsedTime * 1.5) * 0.6;
+      droneGroup.rotation.y = elapsedTime * 0.35 + Math.PI / 2;
+
+      // Animate Living City: Floating Cyber Sparks
+      const posAttr = particleGeo.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < particleCount; i++) {
+        let py = posAttr.getY(i) + 0.015;
+        if (py > 13) py = 0.5;
+        posAttr.setY(i, py);
+      }
+      posAttr.needsUpdate = true;
+
+      // Animate NPCs: Waving arm & breathing when player approaches
       npcsList.forEach(npc => {
         const dist = Math.hypot(playerGroup.position.x - npc.pos.x, playerGroup.position.z - npc.pos.z);
         if (dist < 7.5) {
@@ -838,11 +984,13 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       // Proximity check for NPC Dialogue
       const near = checkNearestBuilding(playerGroup.position.x, playerGroup.position.z);
       if (near) {
-        if (near.id !== dismissedId) {
+        if (near.id !== dismissedIdRef.current) {
+          if (!activeDialogueRef.current || activeDialogueRef.current.id !== near.id) {
+            soundEngine.playProximityChime();
+          }
           setActiveDialogue(near);
         }
       } else {
-        // Player walked away: reset dismissed ID so dialogue can trigger again when returning
         setActiveDialogue(null);
         setDismissedId(null);
       }
@@ -901,7 +1049,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       }
       renderer.dispose();
     };
-  }, [onBuildingSelect, dismissedId]);
+  }, []);
 
   return (
     <div className="relative w-full h-full overflow-hidden select-none">
@@ -1252,10 +1400,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* MOBILE TOUCH CONTROLS (VIRTUAL D-PAD & JUMP - ELEVATED) */}
+      {/* MOBILE TOUCH CONTROLS (VIRTUAL D-PAD & JUMP - COMPACT & ELEVATED) */}
       {/* ========================================================= */}
       <div className="sm:hidden absolute bottom-7 left-4 z-40 pointer-events-auto">
-        <div className="grid grid-cols-3 gap-1.5 w-36 h-36 p-1.5 rounded-2xl bg-slate-950/90 backdrop-blur-xl border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.85)]">
+        <div className="grid grid-cols-3 gap-1 w-28 h-28 p-1 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-cyan-500/40 shadow-[0_10px_35px_rgba(0,0,0,0.85)]">
           <div />
           <button
             onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.forward = true; }}
@@ -1264,10 +1412,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             onMouseDown={() => { mobileInputRef.current.forward = true; }}
             onMouseUp={() => { mobileInputRef.current.forward = false; }}
             onMouseLeave={() => { mobileInputRef.current.forward = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            className="flex items-center justify-center rounded-lg bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow transition-all active:scale-95 touch-none"
             aria-label="Maju"
           >
-            <ArrowUp className="w-7 h-7" strokeWidth={2.5} />
+            <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
           </button>
           <div />
 
@@ -1278,12 +1426,12 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             onMouseDown={() => { mobileInputRef.current.left = true; }}
             onMouseUp={() => { mobileInputRef.current.left = false; }}
             onMouseLeave={() => { mobileInputRef.current.left = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            className="flex items-center justify-center rounded-lg bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow transition-all active:scale-95 touch-none"
             aria-label="Kiri"
           >
-            <ArrowLeft className="w-7 h-7" strokeWidth={2.5} />
+            <ArrowLeft className="w-5 h-5" strokeWidth={2.5} />
           </button>
-          <div className="flex items-center justify-center text-[10px] text-cyan-400 font-mono font-black tracking-wider">
+          <div className="flex items-center justify-center text-[8px] text-cyan-400/80 font-mono font-bold tracking-wider">
             MOVE
           </div>
           <button
@@ -1293,10 +1441,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             onMouseDown={() => { mobileInputRef.current.right = true; }}
             onMouseUp={() => { mobileInputRef.current.right = false; }}
             onMouseLeave={() => { mobileInputRef.current.right = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            className="flex items-center justify-center rounded-lg bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow transition-all active:scale-95 touch-none"
             aria-label="Kanan"
           >
-            <ArrowRight className="w-7 h-7" strokeWidth={2.5} />
+            <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
           </button>
 
           <div />
@@ -1307,16 +1455,16 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             onMouseDown={() => { mobileInputRef.current.backward = true; }}
             onMouseUp={() => { mobileInputRef.current.backward = false; }}
             onMouseLeave={() => { mobileInputRef.current.backward = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            className="flex items-center justify-center rounded-lg bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow transition-all active:scale-95 touch-none"
             aria-label="Mundur"
           >
-            <ArrowDown className="w-7 h-7" strokeWidth={2.5} />
+            <ArrowDown className="w-5 h-5" strokeWidth={2.5} />
           </button>
           <div />
         </div>
       </div>
 
-      {/* Mobile Jump Button - Elevated */}
+      {/* Mobile Jump Button - Compact & Elevated */}
       <div className="sm:hidden absolute bottom-7 right-4 z-40 pointer-events-auto">
         <button
           onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.jump = true; }}
@@ -1325,10 +1473,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           onMouseDown={() => { mobileInputRef.current.jump = true; }}
           onMouseUp={() => { mobileInputRef.current.jump = false; }}
           onMouseLeave={() => { mobileInputRef.current.jump = false; }}
-          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-500 text-slate-950 font-black text-xs shadow-[0_10px_30px_rgba(0,229,255,0.4)] flex flex-col items-center justify-center gap-0.5 border-2 border-white/40 active:scale-90 transition-transform touch-none cursor-pointer"
+          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-500 text-slate-950 font-black text-[11px] shadow-[0_8px_25px_rgba(0,229,255,0.4)] flex flex-col items-center justify-center gap-0.5 border-2 border-white/40 active:scale-90 transition-transform touch-none cursor-pointer"
           aria-label="Lompat"
         >
-          <Footprints className="w-5 h-5" />
+          <Footprints className="w-4 h-4" />
           <span>JUMP</span>
         </button>
       </div>

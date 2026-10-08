@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { DustCanvas } from './components/DustCanvas';
 import { VoxelAvatar3D } from './components/VoxelAvatar3D';
 import { RobloxCityWorld } from './components/RobloxCityWorld';
 import { portfolioProjects, type CityBuilding } from './data/portfolioProjects';
+import { soundEngine } from './utils/audioManager';
 import { 
   Sparkles, 
   ChevronRight, 
@@ -35,24 +36,33 @@ export function App() {
   const totalStages = 5;
   const stageNames = ['LOBBY', 'KARAKTER', 'KARYA', 'LAYANAN', 'KONTAK'];
 
-  // Retro Web Audio SFX
-  const playSfx = (freq = 440, type: OscillatorType = 'sine', duration = 0.08) => {
+  // Unlock and start audio engine on first user interaction
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      soundEngine.unlock();
+      if (soundEnabled) {
+        soundEngine.startBgm();
+      }
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+    window.addEventListener('pointerdown', handleFirstInteraction);
+    window.addEventListener('keydown', handleFirstInteraction);
+    return () => {
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, [soundEnabled]);
+
+  const handleBuildingSelect = useCallback((b: CityBuilding) => {
+    setSelectedBuilding(b);
+  }, []);
+
+  const playSfx = (_freq = 440, _type: OscillatorType = 'sine', _duration = 0.08) => {
     if (!soundEnabled) return;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    } catch {
-      // AudioContext fallback
-    }
+      soundEngine.playTypewriterBlip();
+    } catch {}
   };
 
   const handleNextStage = () => {
@@ -186,13 +196,23 @@ export function App() {
 
                 <button
                   onClick={() => {
-                    setSoundEnabled(!soundEnabled);
-                    playSfx(520, 'sine');
+                    const newMuted = soundEngine.toggleMute();
+                    setSoundEnabled(!newMuted);
                   }}
-                  className="p-1.5 sm:p-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer"
-                  title="Toggle Sound Effects"
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1.5 transition-colors shadow active:scale-95"
+                  title="Toggle Suara Musik & Efek"
                 >
-                  {soundEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" /> : <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                  {soundEnabled ? (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                      <span className="text-[10px] sm:text-[11px] font-mono text-cyan-300 font-bold">BGM 🎵</span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 font-bold">MUTE 🔇</span>
+                    </>
+                  )}
                 </button>
               </div>
             </header>
@@ -200,7 +220,7 @@ export function App() {
             {/* Playable 3D Roblox Canvas */}
             <div className="w-full h-full">
               <RobloxCityWorld 
-                onBuildingSelect={(b) => setSelectedBuilding(b)}
+                onBuildingSelect={handleBuildingSelect}
                 targetBuildingId={targetBuildingId}
               />
             </div>
