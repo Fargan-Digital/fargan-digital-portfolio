@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { 
   Compass, 
@@ -9,7 +9,11 @@ import {
   ArrowRight, 
   Sparkles, 
   MapPin, 
-  ExternalLink
+  ExternalLink,
+  MessageSquare,
+  Volume2,
+  VolumeX,
+  X
 } from 'lucide-react';
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
 
@@ -26,7 +30,12 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
-  const [activePrompt, setActivePrompt] = useState<CityBuilding | null>(null);
+  const [activeDialogue, setActiveDialogue] = useState<CityBuilding | null>(null);
+  const [displayedText, setDisplayedText] = useState<string>('');
+  const [isTypingDone, setIsTypingDone] = useState<boolean>(false);
+  const [dialogueSfxEnabled, setDialogueSfxEnabled] = useState<boolean>(true);
+  const [dismissedId, setDismissedId] = useState<string | null>(null);
+
   const [playerCoord, setPlayerCoord] = useState<{ x: number; z: number }>({ x: 0, z: 6 });
   const [controlsHintVisible, setControlsHintVisible] = useState(true);
   const [mobileRadarOpen, setMobileRadarOpen] = useState(false);
@@ -37,15 +46,67 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   // Mobile controller touch states
   const mobileInputRef = useRef({ forward: false, backward: false, left: false, right: false, jump: false });
 
+  // Web Audio Typewriter Click SFX
+  const playTypewriterClick = useCallback(() => {
+    if (!dialogueSfxEnabled) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      // Blip frequency 680Hz - 860Hz like cute RPG dialogue
+      osc.frequency.setValueAtTime(680 + Math.random() * 180, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.035, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.03);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.032);
+    } catch {
+      // Audio fallback
+    }
+  }, [dialogueSfxEnabled]);
+
+  // Handle Typewriter Text Animation
+  useEffect(() => {
+    if (!activeDialogue) {
+      setDisplayedText('');
+      setIsTypingDone(false);
+      return;
+    }
+
+    const fullText = activeDialogue.dialogueText;
+    let charIndex = 0;
+    setDisplayedText('');
+    setIsTypingDone(false);
+
+    const timer = setInterval(() => {
+      charIndex++;
+      if (charIndex <= fullText.length) {
+        setDisplayedText(fullText.slice(0, charIndex));
+        // Play click every 2 characters or on whitespace for gentle typewriter cadence
+        if (charIndex % 2 === 0 || fullText[charIndex - 1] === ' ') {
+          playTypewriterClick();
+        }
+      } else {
+        setIsTypingDone(true);
+        clearInterval(timer);
+      }
+    }, 22);
+
+    return () => clearInterval(timer);
+  }, [activeDialogue, playTypewriterClick]);
+
   // Handle external teleport if targetBuildingId provided
   useEffect(() => {
     if (targetBuildingId && playerTeleportRef.current) {
       const b = portfolioProjects.find(item => item.id === targetBuildingId);
       if (b) {
-        // Teleport in front of entrance
         const targetX = b.position[0];
         const targetZ = b.position[2] + (b.position[2] < 0 ? 5 : -5);
         playerTeleportRef.current(targetX, targetZ);
+        setDismissedId(null);
+        setActiveDialogue(b);
       }
     }
   }, [targetBuildingId]);
@@ -63,7 +124,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     scene.background = new THREE.Color(0x060911);
     scene.fog = new THREE.FogExp2(0x060911, 0.015);
 
-    // Dynamic FOV for mobile to provide wide perspective and breathing room
     const camera = new THREE.PerspectiveCamera(
       isMobile ? 65 : 52,
       container.clientWidth / container.clientHeight,
@@ -97,12 +157,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Ground Cyber Grid
     const grid = new THREE.GridHelper(120, 60, 0x00A2FF, 0x142236);
     grid.position.y = 0.02;
     scene.add(grid);
 
-    // Road Networks (Asphalt avenues)
     const roadMat = new THREE.MeshStandardMaterial({ color: 0x0e1422, roughness: 0.7 });
 
     const createRoad = (width: number, length: number, x: number, z: number, rotate = false) => {
@@ -114,12 +172,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       scene.add(road);
     };
 
-    // Main Avenue (North-South)
     createRoad(8, 110, 0, 0);
-    // East & West Avenues
     createRoad(6, 110, -18, 0);
     createRoad(6, 110, 18, 0);
-    // Cross Boulevards (East-West)
     createRoad(6, 110, 0, -8, true);
     createRoad(6, 110, 0, 16, true);
 
@@ -144,11 +199,19 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     monument.position.set(0, 1.5, 0);
     scene.add(monument);
 
-    // 4. Construct All 10 City Buildings
+    // Array to track NPCs for animation
+    const npcsList: { 
+      id: string; 
+      building: CityBuilding; 
+      waveArm: THREE.Mesh; 
+      pos: THREE.Vector3 
+    }[] = [];
+
+    // 4. Construct All 10 City Buildings + 3D NPCs in front
     portfolioProjects.forEach(b => {
       const bGroup = new THREE.Group();
 
-      // Main Building Body
+      // Building Body
       const bodyGeo = new THREE.BoxGeometry(b.width, b.height, b.depth);
       const bodyMat = new THREE.MeshStandardMaterial({ 
         color: b.color, 
@@ -161,14 +224,14 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       bodyMesh.receiveShadow = true;
       bGroup.add(bodyMesh);
 
-      // Neon Cyber Edges
+      // Neon Edges
       const edges = new THREE.EdgesGeometry(bodyGeo);
       const lineMat = new THREE.LineBasicMaterial({ color: b.neonColor, linewidth: 2 });
       const wireframe = new THREE.LineSegments(edges, lineMat);
       wireframe.position.y = b.height / 2;
       bGroup.add(wireframe);
 
-      // Holographic Signboard on Top
+      // Holographic Signboard
       const signCanvas = document.createElement('canvas');
       signCanvas.width = 512;
       signCanvas.height = 130;
@@ -181,7 +244,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         sctx.strokeRect(4, 4, 504, 122);
 
         sctx.fillStyle = '#FFFFFF';
-        sctx.font = 'bold 32px sans-serif';
+        sctx.font = 'bold 30px sans-serif';
         sctx.textAlign = 'center';
         sctx.fillText(b.name.toUpperCase(), 256, 52);
 
@@ -198,9 +261,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       const signMesh = new THREE.Mesh(signGeo, signMat);
       signMesh.position.set(0, b.height + 1.4, 0);
 
-      // Orient sign towards closest street
       if (Math.abs(b.position[0]) > Math.abs(b.position[2])) {
-        // East or West buildings
         signMesh.rotation.y = b.position[0] < 0 ? Math.PI / 2 : -Math.PI / 2;
       }
       bGroup.add(signMesh);
@@ -208,14 +269,30 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       // Entrance Glow Pad
       let padOffsetX = 0;
       let padOffsetZ = 0;
+      let npcOffsetX = 0;
+      let npcOffsetZ = 0;
+      let npcRotationY = 0;
+
       if (b.position[2] < -10) {
-        padOffsetZ = b.depth / 2 + 1.5; // North building faces south
+        padOffsetZ = b.depth / 2 + 1.5;
+        npcOffsetX = -1.6;
+        npcOffsetZ = b.depth / 2 + 2.4;
+        npcRotationY = 0; // Faces south toward plaza
       } else if (b.position[2] > 10) {
-        padOffsetZ = -b.depth / 2 - 1.5; // South building faces north
+        padOffsetZ = -b.depth / 2 - 1.5;
+        npcOffsetX = 1.6;
+        npcOffsetZ = -b.depth / 2 - 2.4;
+        npcRotationY = Math.PI; // Faces north
       } else if (b.position[0] < -10) {
-        padOffsetX = b.width / 2 + 1.5; // West building faces east
+        padOffsetX = b.width / 2 + 1.5;
+        npcOffsetX = b.width / 2 + 2.4;
+        npcOffsetZ = 1.4;
+        npcRotationY = Math.PI / 2; // Faces east
       } else {
-        padOffsetX = -b.width / 2 - 1.5; // East building faces west
+        padOffsetX = -b.width / 2 - 1.5;
+        npcOffsetX = -b.width / 2 - 2.4;
+        npcOffsetZ = -1.4;
+        npcRotationY = -Math.PI / 2; // Faces west
       }
 
       const padGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.1, 16);
@@ -227,13 +304,137 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       pad.position.set(padOffsetX, 0.06, padOffsetZ);
       bGroup.add(pad);
 
-      // Neon Spot Light
       const spot = new THREE.PointLight(b.neonColor, 3.5, 12);
       spot.position.set(padOffsetX, 2.2, padOffsetZ);
       bGroup.add(spot);
 
       bGroup.position.set(b.position[0], 0, b.position[2]);
       scene.add(bGroup);
+
+      // =========================================================
+      // 3D ROBLOX NPC CHARACTER IN FRONT OF BUILDING ENTRANCE
+      // =========================================================
+      const npcGroup = new THREE.Group();
+
+      const npcSkinMat = new THREE.MeshStandardMaterial({ color: 0xFAD090, roughness: 0.5 });
+      const npcShirtMat = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.3 });
+      const npcNeonMat = new THREE.MeshStandardMaterial({ 
+        color: b.neonColor, 
+        emissive: b.neonColor, 
+        emissiveIntensity: 0.5 
+      });
+      const npcPantsMat = new THREE.MeshStandardMaterial({ color: 0x0F172A, roughness: 0.6 });
+
+      // NPC Head with Smile Face
+      const npcFaceCanvas = document.createElement('canvas');
+      npcFaceCanvas.width = 128;
+      npcFaceCanvas.height = 128;
+      const nfctx = npcFaceCanvas.getContext('2d');
+      if (nfctx) {
+        nfctx.fillStyle = '#FAD090';
+        nfctx.fillRect(0, 0, 128, 128);
+        nfctx.fillStyle = '#0F172A';
+        // Friendly Eyes
+        nfctx.fillRect(30, 42, 16, 22);
+        nfctx.fillRect(82, 42, 16, 22);
+        // Catchlight
+        nfctx.fillStyle = '#FFFFFF';
+        nfctx.fillRect(38, 44, 6, 8);
+        nfctx.fillRect(90, 44, 6, 8);
+        // Smile
+        nfctx.strokeStyle = '#0F172A';
+        nfctx.beginPath();
+        nfctx.arc(64, 82, 18, 0.1 * Math.PI, 0.9 * Math.PI);
+        nfctx.lineWidth = 6;
+        nfctx.stroke();
+      }
+      const npcFaceTexture = new THREE.CanvasTexture(npcFaceCanvas);
+      const npcHeadMatArray = [
+        npcSkinMat, npcSkinMat, npcSkinMat, npcSkinMat,
+        new THREE.MeshStandardMaterial({ map: npcFaceTexture }),
+        npcSkinMat
+      ];
+
+      const npcHead = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), npcHeadMatArray);
+      npcHead.position.y = 1.62;
+      npcHead.castShadow = true;
+      npcGroup.add(npcHead);
+
+      // NPC Floating Nametag Billboard above head
+      const nameCanvas = document.createElement('canvas');
+      nameCanvas.width = 320;
+      nameCanvas.height = 100;
+      const nctx = nameCanvas.getContext('2d');
+      if (nctx) {
+        nctx.fillStyle = '#080C14';
+        nctx.fillRect(0, 0, 320, 100);
+        nctx.strokeStyle = `#${b.neonColor.toString(16).padStart(6, '0')}`;
+        nctx.lineWidth = 5;
+        nctx.strokeRect(4, 4, 312, 92);
+
+        nctx.fillStyle = '#FFFFFF';
+        nctx.font = 'bold 26px sans-serif';
+        nctx.textAlign = 'center';
+        nctx.fillText(b.npcName, 160, 42);
+
+        nctx.fillStyle = `#${b.neonColor.toString(16).padStart(6, '0')}`;
+        nctx.font = 'bold 18px monospace';
+        nctx.fillText(b.npcRole.split('—')[0].trim(), 160, 78);
+      }
+      const nameTexture = new THREE.CanvasTexture(nameCanvas);
+      const nameMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.4, 0.75),
+        new THREE.MeshBasicMaterial({ map: nameTexture, side: THREE.DoubleSide })
+      );
+      nameMesh.position.set(0, 2.35, 0);
+      npcGroup.add(nameMesh);
+
+      // NPC Torso (Suit / Uniform)
+      const npcTorso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.05, 0.52), npcShirtMat);
+      npcTorso.position.y = 0.82;
+      npcTorso.castShadow = true;
+      npcGroup.add(npcTorso);
+
+      // Tie / Badge on chest
+      const npcTie = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.05), npcNeonMat);
+      npcTie.position.set(0, 0.9, 0.28);
+      npcGroup.add(npcTie);
+
+      // NPC Arms (Left arm can wave)
+      const npcArmGeo = new THREE.BoxGeometry(0.35, 0.95, 0.42);
+      const npcLeftArm = new THREE.Mesh(npcArmGeo, npcShirtMat);
+      npcLeftArm.position.set(-0.68, 0.82, 0);
+      npcLeftArm.castShadow = true;
+      npcGroup.add(npcLeftArm);
+
+      const npcRightArm = new THREE.Mesh(npcArmGeo, npcShirtMat);
+      npcRightArm.position.set(0.68, 0.82, 0);
+      npcRightArm.castShadow = true;
+      npcGroup.add(npcRightArm);
+
+      // NPC Legs
+      const npcLegGeo = new THREE.BoxGeometry(0.42, 0.85, 0.42);
+      const npcLeftLeg = new THREE.Mesh(npcLegGeo, npcPantsMat);
+      npcLeftLeg.position.set(-0.23, -0.05, 0);
+      npcGroup.add(npcLeftLeg);
+
+      const npcRightLeg = new THREE.Mesh(npcLegGeo, npcPantsMat);
+      npcRightLeg.position.set(0.23, -0.05, 0);
+      npcGroup.add(npcRightLeg);
+
+      // Position NPC in world
+      const worldNpcX = b.position[0] + npcOffsetX;
+      const worldNpcZ = b.position[2] + npcOffsetZ;
+      npcGroup.position.set(worldNpcX, 0, worldNpcZ);
+      npcGroup.rotation.y = npcRotationY;
+      scene.add(npcGroup);
+
+      npcsList.push({
+        id: b.id,
+        building: b,
+        waveArm: npcLeftArm,
+        pos: new THREE.Vector3(worldNpcX, 0, worldNpcZ)
+      });
     });
 
     // 5. Streetlights around the city
@@ -262,7 +463,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     ];
     lightCoords.forEach(([lx, lz]) => addStreetLight(lx, lz));
 
-    // 6. Playable Roblox Character Rig
+    // 6. Playable Roblox Player Character Rig
     const playerGroup = new THREE.Group();
 
     const skinMat = new THREE.MeshStandardMaterial({ color: 0xFAD090, roughness: 0.5 });
@@ -270,7 +471,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     const cyanNeonMat = new THREE.MeshStandardMaterial({ color: 0x00E5FF, emissive: 0x00A2FF, emissiveIntensity: 0.6 });
     const pantsMat = new THREE.MeshStandardMaterial({ color: 0x0B0F19, roughness: 0.6 });
 
-    // Head with Face
     const faceCanvas = document.createElement('canvas');
     faceCanvas.width = 128;
     faceCanvas.height = 128;
@@ -302,7 +502,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     head.castShadow = true;
     playerGroup.add(head);
 
-    // Cyber Headphones
+    // Headphones
     const bandGeo = new THREE.BoxGeometry(0.82, 0.08, 0.2);
     const band = new THREE.Mesh(bandGeo, cyanNeonMat);
     band.position.set(0, 2.05, 0);
@@ -315,7 +515,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     earR.position.set(0.41, 1.65, 0);
     playerGroup.add(earL, earR);
 
-    // Torso (Hoodie with F Logo)
+    // Torso
     const torsoGeo = new THREE.BoxGeometry(1.0, 1.1, 0.55);
     const torso = new THREE.Mesh(torsoGeo, hoodieMat);
     torso.position.y = 0.85;
@@ -351,18 +551,16 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     rightLeg.castShadow = true;
     playerGroup.add(rightLeg);
 
-    // Floating Companion AI Orb
+    // Floating AI Orb
     const orbGeo = new THREE.IcosahedronGeometry(0.18, 1);
     const orbMat = new THREE.MeshBasicMaterial({ color: 0x00E5FF, wireframe: true });
     const orb = new THREE.Mesh(orbGeo, orbMat);
     orb.position.set(0.9, 1.9, -0.4);
     playerGroup.add(orb);
 
-    // Spawn character at center facing North
     playerGroup.position.set(0, 1.35, 6);
     scene.add(playerGroup);
 
-    // Expose teleport function
     playerTeleportRef.current = (tx: number, tz: number) => {
       playerGroup.position.x = tx;
       playerGroup.position.z = tz;
@@ -373,12 +571,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     const keys: Record<string, boolean> = {};
     const handleKeyDown = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
-      if (e.key.toLowerCase() === 'e') {
-        const near = checkNearestBuilding(playerGroup.position.x, playerGroup.position.z);
-        if (near) {
-          onBuildingSelect(near);
-        }
-      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = false;
@@ -396,7 +588,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     const checkNearestBuilding = (px: number, pz: number): CityBuilding | null => {
       for (const b of portfolioProjects) {
         const dist = Math.hypot(px - b.position[0], pz - b.position[2]);
-        const triggerDistance = Math.max(b.width, b.depth) / 2 + 3.8;
+        const triggerDistance = Math.max(b.width, b.depth) / 2 + 4.2;
         if (dist < triggerDistance) {
           return b;
         }
@@ -466,27 +658,46 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         velocityY = 0;
       }
 
-      // Boundary clamp
       playerGroup.position.x = Math.max(-48, Math.min(48, playerGroup.position.x));
       playerGroup.position.z = Math.max(-48, Math.min(48, playerGroup.position.z));
 
-      // Orbiting AI Drone
+      // AI Orb
       orb.position.y = 1.8 + Math.sin(elapsedTime * 3) * 0.2;
       orb.rotation.y += 0.04;
       monument.rotation.y += 0.01;
 
-      // Coordinate updates
+      // Animate NPCs: Waving arm when player approaches
+      npcsList.forEach(npc => {
+        const dist = Math.hypot(playerGroup.position.x - npc.pos.x, playerGroup.position.z - npc.pos.z);
+        if (dist < 7.5) {
+          // Waving hand
+          npc.waveArm.rotation.x = -Math.PI / 2 + Math.sin(elapsedTime * 8) * 0.4;
+          npc.waveArm.rotation.z = Math.sin(elapsedTime * 6) * 0.25;
+        } else {
+          npc.waveArm.rotation.x = Math.sin(elapsedTime * 1.5) * 0.06;
+          npc.waveArm.rotation.z = 0;
+        }
+      });
+
+      // Coordinates
       setPlayerCoord({
         x: Math.round(playerGroup.position.x * 10) / 10,
         z: Math.round(playerGroup.position.z * 10) / 10
       });
 
-      // Proximity Prompt check
+      // Proximity check for NPC Dialogue
       const near = checkNearestBuilding(playerGroup.position.x, playerGroup.position.z);
-      setActivePrompt(near);
+      if (near) {
+        if (near.id !== dismissedId) {
+          setActiveDialogue(near);
+        }
+      } else {
+        // Player walked away: reset dismissed ID so dialogue can trigger again when returning
+        setActiveDialogue(null);
+        setDismissedId(null);
+      }
 
-      // Responsive Camera Follow Offset:
-      // On mobile / portrait, pull the camera higher & further back so character is unobstructed
+      // Camera Follow
       const isMob = checkIsMobile();
       const currentCameraOffset = isMob 
         ? new THREE.Vector3(0, 6.2, 13.2) 
@@ -522,7 +733,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       }
       renderer.dispose();
     };
-  }, [onBuildingSelect]);
+  }, [onBuildingSelect, dismissedId]);
 
   return (
     <div className="relative w-full h-full overflow-hidden select-none">
@@ -555,7 +766,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             <span className="text-[10px] text-slate-400">10 KARYA</span>
           </div>
 
-          {/* Mini-Map Radar Canvas View */}
           <div className="relative w-36 h-36 rounded-xl bg-slate-900/90 border border-cyan-500/30 overflow-hidden flex items-center justify-center">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,162,255,0.15)_0%,transparent_70%)]" />
             <div className="absolute inset-x-0 top-1/2 h-px bg-cyan-500/20" />
@@ -565,7 +775,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             {portfolioProjects.map(b => {
               const mapX = 72 + (b.position[0] / 48) * 60;
               const mapY = 72 + (b.position[2] / 48) * 60;
-              const isNear = activePrompt?.id === b.id;
+              const isNear = activeDialogue?.id === b.id;
               return (
                 <div
                   key={b.id}
@@ -599,7 +809,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* MOBILE RADAR DROPDOWN MODAL (WHEN TAPPED) */}
+      {/* MOBILE RADAR DROPDOWN MODAL */}
       {/* ========================================================= */}
       {mobileRadarOpen && (
         <div className="sm:hidden absolute top-24 left-3 right-3 z-40 bg-slate-950/95 backdrop-blur-xl rounded-2xl p-4 border border-cyan-500/40 shadow-2xl space-y-3 animate-fade-in pointer-events-auto">
@@ -626,7 +836,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               {portfolioProjects.map(b => {
                 const mapX = 88 + (b.position[0] / 48) * 75;
                 const mapY = 88 + (b.position[2] / 48) * 75;
-                const isNear = activePrompt?.id === b.id;
+                const isNear = activeDialogue?.id === b.id;
                 return (
                   <div
                     key={b.id}
@@ -653,10 +863,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             </div>
           </div>
 
-          <div className="text-[10px] text-center text-slate-400 font-mono">
-            Titik warna menunjukkan lokasi gedung. Tekan nama gedung di bawah untuk teleport:
-          </div>
-
           <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pt-1">
             {portfolioProjects.map(b => (
               <button
@@ -666,6 +872,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                     playerTeleportRef.current(b.position[0], b.position[2] + (b.position[2] < 0 ? 5 : -5));
                   }
                   setMobileRadarOpen(false);
+                  setDismissedId(null);
+                  setActiveDialogue(b);
                 }}
                 className="p-1.5 rounded-lg bg-slate-900 border border-white/5 text-left flex items-center gap-1.5 text-[10px] text-slate-300 active:bg-cyan-500/20"
               >
@@ -681,7 +889,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* ROBLOX HUD OVERLAY: QUICK TELEPORT / DIRECTORY (DESKTOP) */}
+      {/* QUICK TELEPORT DIRECTORY (DESKTOP) */}
       {/* ========================================================= */}
       <div className="absolute top-16 right-4 z-30 hidden sm:block">
         <div className="bg-slate-950/80 backdrop-blur-md rounded-2xl p-3 border border-white/10 shadow-xl max-h-72 overflow-y-auto w-52 space-y-1 text-xs">
@@ -696,9 +904,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                 if (playerTeleportRef.current) {
                   playerTeleportRef.current(b.position[0], b.position[2] + (b.position[2] < 0 ? 5 : -5));
                 }
+                setDismissedId(null);
+                setActiveDialogue(b);
               }}
               className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
-                activePrompt?.id === b.id
+                activeDialogue?.id === b.id
                   ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
                   : 'text-slate-300 hover:bg-white/5 hover:text-white'
               }`}
@@ -714,39 +924,119 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* ROBLOX PROXIMITY PROMPT MODAL (SAFE ELEVATION ON MOBILE) */}
+      {/* RPG TYPEWRITER DIALOGUE BOX WITH CS NPC AVATAR */}
       {/* ========================================================= */}
-      {activePrompt && (
-        <div className="absolute bottom-40 sm:bottom-12 left-1/2 -translate-x-1/2 z-40 animate-bounce w-[92vw] sm:w-auto max-w-md pointer-events-auto">
-          <div className="roblox-panel p-3.5 sm:p-4 px-4 sm:px-6 flex items-center gap-3 sm:gap-4 border-2 border-cyan-400 shadow-2xl bg-slate-950/95">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-base sm:text-lg shadow-lg shadow-cyan-500/50 flex-shrink-0">
-              E
-            </div>
-
-            <div className="space-y-0.5 flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">
-                  {activePrompt.badge}
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">Didekati</span>
+      {activeDialogue && (
+        <div className="absolute bottom-40 sm:bottom-8 left-1/2 -translate-x-1/2 z-40 w-[94vw] sm:w-[620px] max-w-full pointer-events-auto animate-fade-in">
+          <div 
+            className="roblox-panel p-4 sm:p-5 border-2 shadow-2xl bg-slate-950/95 backdrop-blur-xl rounded-3xl space-y-3"
+            style={{ borderColor: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}` }}
+          >
+            {/* NPC Header & Nametag */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <div className="flex items-center gap-3">
+                {/* 3D NPC Head Avatar Badge */}
+                <div 
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg flex-shrink-0 border border-white/20"
+                  style={{ backgroundColor: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}` }}
+                >
+                  <MessageSquare className="w-5 h-5 text-slate-950" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-black text-white">{activeDialogue.npcName}</span>
+                    <span 
+                      className="text-[9px] sm:text-[10px] font-mono px-2 py-0.2 rounded-full font-bold"
+                      style={{ 
+                        backgroundColor: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}22`,
+                        color: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}`,
+                        border: `1px solid #${activeDialogue.neonColor.toString(16).padStart(6, '0')}55`
+                      }}
+                    >
+                      {activeDialogue.badge}
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-[11px] text-cyan-300 font-mono mt-0.5">{activeDialogue.npcRole}</p>
+                </div>
               </div>
-              <h4 className="text-xs sm:text-sm font-black text-white truncate">{activePrompt.name}</h4>
-              <p className="text-[10px] sm:text-[11px] text-slate-300 truncate">{activePrompt.subtitle}</p>
+
+              {/* Sound & Close Buttons */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setDialogueSfxEnabled(!dialogueSfxEnabled)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="Toggle Suara Ketikan"
+                >
+                  {dialogueSfxEnabled ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => {
+                    setDismissedId(activeDialogue.id);
+                    setActiveDialogue(null);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer font-bold text-sm"
+                  title="Tutup Percakapan"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            <button
-              onClick={() => onBuildingSelect(activePrompt)}
-              className="px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/30 cursor-pointer flex-shrink-0 active:scale-95"
+            {/* Typewriter Dialogue Speech Bubble */}
+            <div 
+              onClick={() => {
+                // Click bubble to instantly reveal full text
+                setDisplayedText(activeDialogue.dialogueText);
+                setIsTypingDone(true);
+              }}
+              className="p-3.5 rounded-2xl bg-slate-900/90 border border-white/5 cursor-pointer relative min-h-[64px]"
             >
-              <span>KUNJUNGI</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+                {displayedText}
+                {!isTypingDone && (
+                  <span className="inline-block w-2 h-4 bg-cyan-400 ml-1 animate-pulse align-middle" />
+                )}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+              <button
+                onClick={() => onBuildingSelect(activeDialogue)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition-all active:scale-95"
+              >
+                📋 Spesifikasi Gedung
+              </button>
+
+              <a
+                href={activeDialogue.url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 rounded-xl font-black text-xs text-slate-950 flex items-center gap-1.5 shadow-lg transition-all active:scale-95 hover:scale-105"
+                style={{
+                  background: `linear-gradient(135deg, #${activeDialogue.neonColor.toString(16).padStart(6, '0')}, #38bdf8)`
+                }}
+              >
+                <span>BUKA WEBSITE LIVE ➔</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <button
+                onClick={() => {
+                  setDismissedId(activeDialogue.id);
+                  setActiveDialogue(null);
+                }}
+                className="px-3 py-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white font-bold text-xs cursor-pointer"
+              >
+                Permisi ✕
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* ========================================================= */}
-      {/* CONTROLS HINT NOTIFICATION (DESKTOP ONLY) */}
+      {/* CONTROLS HINT NOTIFICATION (DESKTOP) */}
       {/* ========================================================= */}
       {controlsHintVisible && (
         <div className="hidden sm:block absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
