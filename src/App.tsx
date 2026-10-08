@@ -105,7 +105,7 @@ export function App() {
     {
       icon: <Code2 className="w-6 h-6 text-cyan-400" />,
       title: 'Custom Web & SaaS Development',
-      desc: 'Membangun aplikasi web, portal bisnis, dan software SaaS kelas produksi dengan arsitektur modal Rp 0, performa ultra-cepat, dan bebas celah keamanan.',
+      desc: 'Membangun aplikasi web, portal bisnis, dan software SaaS kelas produksi dengan performa ultra-cepat, keamanan enterprise-grade, dan arsitektur serverless modern.',
       tag: 'Fullstack Solution'
     },
     {
@@ -281,7 +281,7 @@ export function App() {
                   </h1>
 
                   <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-                    Halo, saya adalah kreator di balik <strong>Fargan Digital AI</strong>. Spesialis merancang perangkat lunak kelas industri, arsitektur data efisiensi tinggi (Rp 0 modal infrastruktur awal), dan otomatisasi AI untuk pemilik brand & pengusaha.
+                    Halo, saya adalah kreator di balik <strong>Fargan Digital AI</strong>. Spesialis merancang perangkat lunak kelas industri, arsitektur cloud performa tinggi, dan otomatisasi AI mutakhir untuk pemilik brand & pengusaha.
                   </p>
 
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -345,7 +345,7 @@ export function App() {
 
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-300 font-bold">Zero-Cost Cloud Architecture (Rp 0 CapEx)</span>
+                        <span className="text-slate-300 font-bold">Enterprise Cloud Architecture & Scalability</span>
                         <span className="text-emerald-400">100%</span>
                       </div>
                       <div className="roblox-stat-bar">
@@ -365,8 +365,8 @@ export function App() {
                       <div className="text-[10px] text-slate-400">Proteksi data & unit ekonomi teruji</div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-950/70 border border-white/5 space-y-1 text-center col-span-2 sm:col-span-1">
-                      <div className="text-xs font-mono text-amber-300 font-bold">Zero Overhead</div>
-                      <div className="text-[10px] text-slate-400">Produksi aplikasi skala besar dengan Rp 0 modal server</div>
+                      <div className="text-xs font-mono text-amber-300 font-bold">High Scalability</div>
+                      <div className="text-[10px] text-slate-400">Arsitektur cloud global dengan ketahanan traffic tinggi</div>
                     </div>
                   </div>
                 </div>
@@ -522,14 +522,14 @@ export function App() {
 
                   <div className="flex flex-col items-center justify-center gap-3">
                     <a
-                      href="https://wa.me/6281295175618?text=Halo%20Al%20Fargan,%20saya%20tertarik%20konsultasi%20gratis%20mengenai%20pembuatan%20website%20/%20software%20AI..."
+                      href="https://wa.me/6281295175618?text=Halo%20Al%20Fargan,%20saya%20tertarik%20konsultasi%20mengenai%20solusi%20website%20/%20software%20AI..."
                       target="_blank"
                       rel="noreferrer"
                       onClick={triggerConfetti}
                       className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/30 cursor-pointer transition-all hover:scale-105"
                     >
                       <MessageCircle className="w-4 h-4 fill-current" />
-                      <span>Chat WhatsApp: 0812-9517-5618 (Konsultasi Gratis)</span>
+                      <span>Chat WhatsApp: 0812-9517-5618 (Konsultasi Bisnis)</span>
                     </a>
                     <p className="text-[11px] text-slate-400 font-mono">
                       Fast Response • Al Fargan Orin • Siap Diskusi Arsitektur & Penawaran
