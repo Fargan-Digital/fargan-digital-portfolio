@@ -68,6 +68,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   // Player Teleport Ref
   const playerTeleportRef = useRef<((x: number, z: number) => void) | null>(null);
 
+  // Exact CS Circle Positions Ref (for pinpoint trigger & teleports)
+  const csSpotsRef = useRef<Map<string, { x: number; z: number }>>(new Map());
+
   // Camera Orbit & Reset Control Refs (Google Maps style)
   const rotateCameraRef = useRef<((delta: number) => void) | null>(null);
   const resetCameraRef = useRef<(() => void) | null>(null);
@@ -116,9 +119,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     if (targetBuildingId && playerTeleportRef.current) {
       const b = currentProjectsRef.current.find(item => item.id === targetBuildingId);
       if (b) {
-        const targetX = b.position[0];
-        const targetZ = b.position[2] + (b.position[2] < 0 ? 5 : -5);
-        playerTeleportRef.current(targetX, targetZ);
+        const spot = csSpotsRef.current.get(b.id) || { 
+          x: b.position[0], 
+          z: b.position[2] + (b.position[2] < 0 ? 5 : -5) 
+        };
+        playerTeleportRef.current(spot.x, spot.z);
         setDismissedId(null);
         setActiveDialogue(b);
       }
@@ -213,13 +218,15 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     monument.position.set(0, 1.5, 0);
     scene.add(monument);
 
-    // Array to track NPCs for animation
+    // Array to track NPCs and CS circles for animation & pinpoint proximity
     const npcsList: { 
       id: string; 
       building: CityBuilding; 
       waveArm: THREE.Mesh; 
       pos: THREE.Vector3 
     }[] = [];
+    const csSpots = new Map<string, { x: number; z: number }>();
+    const csBeacons: THREE.Mesh[] = [];
 
     // 4. Construct City Buildings + 3D NPCs in front
     currentProjectsRef.current.forEach(b => {
@@ -314,17 +321,47 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       }
       bGroup.add(signMesh);
 
-      const padGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.1, 16);
-      const padMat = new THREE.MeshBasicMaterial({ 
+      // Register exact world coordinate of the CS circle
+      const csWorldX = b.position[0] + padOffsetX;
+      const csWorldZ = b.position[2] + padOffsetZ;
+      csSpots.set(b.id, { x: csWorldX, z: csWorldZ });
+      csSpotsRef.current.set(b.id, { x: csWorldX, z: csWorldZ });
+
+      // CS Interactive Circle Pad (Solid glowing cylinder)
+      const padGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.08, 32);
+      const padMat = new THREE.MeshStandardMaterial({ 
         color: b.neonColor, 
-        wireframe: true 
+        emissive: b.neonColor,
+        emissiveIntensity: 0.4,
+        roughness: 0.25,
+        transparent: true,
+        opacity: 0.85
       });
       const pad = new THREE.Mesh(padGeo, padMat);
-      pad.position.set(padOffsetX, 0.06, padOffsetZ);
+      pad.position.set(padOffsetX, 0.05, padOffsetZ);
       bGroup.add(pad);
 
-      const spot = new THREE.PointLight(b.neonColor, 3.5, 12);
-      spot.position.set(padOffsetX, 2.2, padOffsetZ);
+      // Glowing outer ring border
+      const ringGeo = new THREE.RingGeometry(2.1, 2.38, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ 
+        color: b.neonColor, 
+        side: THREE.DoubleSide 
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = -Math.PI / 2;
+      ringMesh.position.set(padOffsetX, 0.08, padOffsetZ);
+      bGroup.add(ringMesh);
+
+      // Floating holographic diamond beacon over CS spot
+      const beaconGeo = new THREE.OctahedronGeometry(0.35);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: b.neonColor, wireframe: true });
+      const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+      beaconMesh.position.set(npcOffsetX, 3.2, npcOffsetZ);
+      bGroup.add(beaconMesh);
+      csBeacons.push(beaconMesh);
+
+      const spot = new THREE.PointLight(b.neonColor, 3.5, 10);
+      spot.position.set(padOffsetX, 2.0, padOffsetZ);
       bGroup.add(spot);
 
       bGroup.position.set(b.position[0], 0, b.position[2]);
@@ -830,11 +867,14 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     let walkCycle = 0;
     let stepTimer = 0;
 
+    // Pinpoint proximity: Only triggers when player steps directly onto the CS circle pad
     const checkNearestBuilding = (px: number, pz: number): CityBuilding | null => {
       for (const b of currentProjectsRef.current) {
-        const dist = Math.hypot(px - b.position[0], pz - b.position[2]);
-        const triggerDistance = Math.max(b.width, b.depth) / 2 + 4.2;
-        if (dist < triggerDistance) {
+        const spot = csSpotsRef.current.get(b.id);
+        if (!spot) continue;
+        const dist = Math.hypot(px - spot.x, pz - spot.z);
+        // Trigger ONLY when standing on the glowing CS circle (pad radius 2.2m)
+        if (dist <= 2.2) {
           return b;
         }
       }
@@ -980,13 +1020,19 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         }
       });
 
+      // Animate floating holographic beacons above CS characters
+      csBeacons.forEach((beacon, i) => {
+        beacon.rotation.y += 0.04;
+        beacon.position.y = 3.2 + Math.sin(elapsedTime * 3 + i) * 0.12;
+      });
+
       // Coordinates
       setPlayerCoord({
         x: Math.round(playerGroup.position.x * 10) / 10,
         z: Math.round(playerGroup.position.z * 10) / 10
       });
 
-      // Proximity check for NPC Dialogue
+      // Proximity check for NPC Dialogue: Strict CS Circle Check
       const near = checkNearestBuilding(playerGroup.position.x, playerGroup.position.z);
       if (near) {
         if (near.id !== dismissedIdRef.current) {
@@ -996,8 +1042,22 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           setActiveDialogue(near);
         }
       } else {
-        setActiveDialogue(null);
-        setDismissedId(null);
+        // Only close when player has stepped completely outside the CS circle (tolerance > 3.0m)
+        if (activeDialogueRef.current) {
+          const activeSpot = csSpotsRef.current.get(activeDialogueRef.current.id);
+          if (activeSpot) {
+            const activeDist = Math.hypot(playerGroup.position.x - activeSpot.x, playerGroup.position.z - activeSpot.z);
+            if (activeDist > 3.0) {
+              setActiveDialogue(null);
+              setDismissedId(null);
+            }
+          } else {
+            setActiveDialogue(null);
+            setDismissedId(null);
+          }
+        } else {
+          setDismissedId(null);
+        }
       }
 
       // Smooth Camera Interpolation (Google Maps Orbit & Zoom)
@@ -1190,7 +1250,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                 key={b.id}
                 onClick={() => {
                   if (playerTeleportRef.current) {
-                    playerTeleportRef.current(b.position[0], b.position[2] + (b.position[2] < 0 ? 5 : -5));
+                    const spot = csSpotsRef.current.get(b.id) || { 
+                      x: b.position[0], 
+                      z: b.position[2] + (b.position[2] < 0 ? 5 : -5) 
+                    };
+                    playerTeleportRef.current(spot.x, spot.z);
                   }
                   setMobileRadarOpen(false);
                   setDismissedId(null);
@@ -1223,7 +1287,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               key={b.id}
               onClick={() => {
                 if (playerTeleportRef.current) {
-                  playerTeleportRef.current(b.position[0], b.position[2] + (b.position[2] < 0 ? 5 : -5));
+                  const spot = csSpotsRef.current.get(b.id) || { 
+                    x: b.position[0], 
+                    z: b.position[2] + (b.position[2] < 0 ? 5 : -5) 
+                  };
+                  playerTeleportRef.current(spot.x, spot.z);
                 }
                 setDismissedId(null);
                 setActiveDialogue(b);
