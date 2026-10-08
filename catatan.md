@@ -140,43 +140,57 @@ Setelah disimpan, jalankan `npm run build` dan deploy ke Cloudflare.
 
 ---
 
-## 🚀 6. Jawaban & Rencana: Dashboard Admin Mandiri (Tanpa Sentuh Kode)
+## 🚀 6. Realisasi: Dashboard Admin Mandiri Jalur Rahasia `/Alfarghan`
 
-> **Pertanyaan Anda:**  
-> *"Apakah ini bisa dibuatkan semacam dashboard? Misal saya mau edit, hapus, atau tambah karya, saya tinggal ngisi di dashboard tanpa edit script atau code lagi, dan menggunakan user & password anti-jebol?"*
+Portal administrasi mandiri telah **100% selesai dibangun dan beroperasi aktif** di Cloudflare Pages Global Edge.  
+Sesuai arahan khusus Anda, jalur URL dibuat **rahasia** (bukan `/admin` yang mudah ditebak bot atau pihak luar):
 
-### Jawabannya: **SANGAT BISA! (100% Memungkinkan)**
-
-Berikut adalah arsitektur teknis yang ideal dan standar industri untuk mewujudkannya:
+👉 **URL Rahasia Portal:** `https://fargan-digital.pages.dev/Alfarghan`  
+*(Atau tekan tombol `Alt + A` di keyboard Anda saat membuka website)*
 
 ```
-[ PENGUNJUNG UMUM ]                    [ AL FARGAN ORIN (ADMIN) ]
-         │                                         │
-         ▼                                         ▼
-https://fargan-digital.pages.dev       https://fargan-digital.pages.dev/admin
-         │                                         │
-         │ (Baca Data Portofolio)                  │ (Login Password Kuat + Token JWT)
-         │                                         ▼
-         │                                [ Formulir Tambah/Edit Karya ]
-         │                                         │
-         └─────────────┬───────────────────────────┘
-                       │
-                       ▼
-            [ CLOUDFLARE D1 / SUPABASE ]
-             Database Cloud Serverless
-              (Menyimpan Data Proyek)
+[ PENGUNJUNG UMUM ]                            [ AL FARGAN ORIN (ADMIN) ]
+         │                                                 │
+         ▼                                                 ▼
+https://fargan-digital.pages.dev               https://fargan-digital.pages.dev/Alfarghan
+         │                                                 │
+         │ (Baca Data Kota 3D Real-Time)                   │ (Login Shield Enkripsi SHA-256 + Salt)
+         │                                                 ▼
+         │                                        [ Panel Kendali Eksekutif ]
+         │                                        - Tambah / Edit / Hapus Gedung
+         │                                        - Ganti Warna Neon & Posisi 3D
+         │                                        - Ketik Dialog Percakapan CS
+         │                                        - Ganti Kata Sandi & Unduh Backup
+         │                                                 │
+         └───────────────────────┬─────────────────────────┘
+                                 ▼
+                     [ CLOUDFLARE KV EDGE ]
+                    Namespace: FARGAN_PORTFOLIO_KV
 ```
 
-### Mengapa Sangat Direkomendasikan?
-1. **Antarmuka Form Sederhana:** Anda cukup membuka `fargan-digital.pages.dev/admin`, memasukkan Judul, Deskripsi, Tautan URL, Warna Neon, dan Teks CS.
-2. **Keamanan Anti-Jebol (Enterprise Security):**
-   - Password dienkripsi menggunakan algoritma **Argon2 / bcrypt with Salt** (bahkan jika hacker mengintip database, password tidak akan terbaca).
-   - Dilengkapi **JWT (JSON Web Token)** dengan masa kedaluwarsa otomatis.
-   - Proteksi **Rate-Limiting**: Mencegah serangan *Brute Force* (sistem otomatis mengunci akun jika ada upaya tebak password lebih dari 5 kali).
-   - Opsi tambahan: **2FA (Two-Factor Authentication)** menggunakan Google Authenticator / WhatsApp OTP.
-3. **Database Serverless Global:**
-   - Memanfaatkan **Cloudflare D1** (Database SQL global dari Cloudflare) atau **Supabase**. Keduanya beroperasi dengan kecepatan tinggi dan tanpa biaya bulanan untuk skala bisnis awal.
-4. **Instan Update:** Begitu Anda menekan tombol "Simpan" di dashboard, gedung 3D dan dialog CS langsung muncul di kota tanpa perlu proses compile atau build ulang di terminal!
+### 🛡️ Fitur Keamanan "Anti-Jebol" yang Berjalan:
+1. **Enkripsi Hash SHA-256 with Salt:**  
+   Password tidak pernah disimpan mentah (*plain text*), melainkan melalui fungsi kriptografi satu arah yang terlindungi *salt* rahasia.
+2. **Kunci Sesi Kriptografi 256-Bit (`crypto.getRandomValues`):**  
+   Setiap login menghasilkan token sesi unik 32-byte acak yang disimpan di Cloudflare KV dengan masa berlaku otomatis (*Auto Expiration TTL*).
+3. **Pertahanan Anti Brute-Force (Rate Limiting IP):**  
+   Maksimal **5 kali percobaan salah**. Jika terdeteksi upaya peretasan atau tebakan berulang, sistem otomatis mengunci akses dari IP tersebut selama 15 menit.
+4. **Kredensial Bawaan & Pengubahan Mandiri:**  
+   - **Username:** `Alfarghan`
+   - **Password Awal:** `FarganAI#2026!Secure`  
+   *(Anda dapat mengganti username dan password kapan saja langsung di tab "Keamanan & Password" di dalam dashboard!)*
+
+### 🎮 Fitur-Fitur di Dalam Portal `/Alfarghan`:
+1. **Tambah Gedung / Karya Baru:**  
+   Isi Nama Gedung, Tagline, Kategori, Deskripsi, Fitur, Link Web, serta Teks CS.
+2. **Penentuan Lokasi Otomatis (✨ Slot Otomatis):**  
+   Sistem secara cerdas menghitung koordinat jalan raya kota yang masih kosong sehingga gedung baru tidak akan pernah bertubrukan dengan gedung lain.
+3. **Pemilih Warna Neon Interaktif:**  
+   Pilih warna neon khas (*Electric Cyan, Cyber Amber, Emerald Mint, Neon Purple, dll.*) yang langsung memancarkan aura di malam hari kota 3D.
+4. **Editor Teks Sambutan CS Gedung:**  
+   Ketik pesan apa saja yang akan diucapkan karakter NPC di depan gedung dalam mode ketikan mesin (*typewriter*) berbunyi retro.
+5. **Cadangan & Pemulihan (Backup JSON):**  
+   Unduh seluruh data kota Anda dalam 1 file `.json`, atau pulihkan kapan saja jika Anda berganti perangkat.
 
 ---
 
