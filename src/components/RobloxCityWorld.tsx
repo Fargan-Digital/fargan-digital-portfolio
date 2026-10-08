@@ -7,13 +7,14 @@ import {
   ArrowDown, 
   ArrowLeft, 
   ArrowRight, 
-  Sparkles, 
   MapPin, 
   ExternalLink,
   MessageSquare,
   Volume2,
   VolumeX,
-  X
+  X,
+  Target,
+  ChevronDown
 } from 'lucide-react';
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
 
@@ -30,6 +31,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
+  // Active targeted building for GPS Compass (defaults to Brand Owner OS)
+  const [activeCompassTarget, setActiveCompassTarget] = useState<CityBuilding>(portfolioProjects[0]);
+  const [distanceToTarget, setDistanceToTarget] = useState<number>(28);
+
   const [activeDialogue, setActiveDialogue] = useState<CityBuilding | null>(null);
   const [displayedText, setDisplayedText] = useState<string>('');
   const [isTypingDone, setIsTypingDone] = useState<boolean>(false);
@@ -37,11 +42,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   const [dismissedId, setDismissedId] = useState<string | null>(null);
 
   const [playerCoord, setPlayerCoord] = useState<{ x: number; z: number }>({ x: 0, z: 6 });
-  const [controlsHintVisible, setControlsHintVisible] = useState(true);
   const [mobileRadarOpen, setMobileRadarOpen] = useState(false);
 
-  // Player Teleport Ref
+  // Player Teleport & Face Align Ref
   const playerTeleportRef = useRef<((x: number, z: number) => void) | null>(null);
+  const alignCameraToTargetRef = useRef<(() => void) | null>(null);
 
   // Mobile controller touch states
   const mobileInputRef = useRef({ forward: false, backward: false, left: false, right: false, jump: false });
@@ -54,7 +59,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'triangle';
-      // Blip frequency 680Hz - 860Hz like cute RPG dialogue
       osc.frequency.setValueAtTime(680 + Math.random() * 180, audioCtx.currentTime);
       gain.gain.setValueAtTime(0.035, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.03);
@@ -84,7 +88,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       charIndex++;
       if (charIndex <= fullText.length) {
         setDisplayedText(fullText.slice(0, charIndex));
-        // Play click every 2 characters or on whitespace for gentle typewriter cadence
         if (charIndex % 2 === 0 || fullText[charIndex - 1] === ' ') {
           playTypewriterClick();
         }
@@ -97,16 +100,19 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     return () => clearInterval(timer);
   }, [activeDialogue, playTypewriterClick]);
 
-  // Handle external teleport if targetBuildingId provided
+  // Handle external teleport or target selection
   useEffect(() => {
-    if (targetBuildingId && playerTeleportRef.current) {
+    if (targetBuildingId) {
       const b = portfolioProjects.find(item => item.id === targetBuildingId);
       if (b) {
-        const targetX = b.position[0];
-        const targetZ = b.position[2] + (b.position[2] < 0 ? 5 : -5);
-        playerTeleportRef.current(targetX, targetZ);
-        setDismissedId(null);
-        setActiveDialogue(b);
+        setActiveCompassTarget(b);
+        if (playerTeleportRef.current) {
+          const targetX = b.position[0];
+          const targetZ = b.position[2] + (b.position[2] < 0 ? 5 : -5);
+          playerTeleportRef.current(targetX, targetZ);
+          setDismissedId(null);
+          setActiveDialogue(b);
+        }
       }
     }
   }, [targetBuildingId]);
@@ -277,22 +283,22 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         padOffsetZ = b.depth / 2 + 1.5;
         npcOffsetX = -1.6;
         npcOffsetZ = b.depth / 2 + 2.4;
-        npcRotationY = 0; // Faces south toward plaza
+        npcRotationY = 0;
       } else if (b.position[2] > 10) {
         padOffsetZ = -b.depth / 2 - 1.5;
         npcOffsetX = 1.6;
         npcOffsetZ = -b.depth / 2 - 2.4;
-        npcRotationY = Math.PI; // Faces north
+        npcRotationY = Math.PI;
       } else if (b.position[0] < -10) {
         padOffsetX = b.width / 2 + 1.5;
         npcOffsetX = b.width / 2 + 2.4;
         npcOffsetZ = 1.4;
-        npcRotationY = Math.PI / 2; // Faces east
+        npcRotationY = Math.PI / 2;
       } else {
         padOffsetX = -b.width / 2 - 1.5;
         npcOffsetX = -b.width / 2 - 2.4;
         npcOffsetZ = -1.4;
-        npcRotationY = -Math.PI / 2; // Faces west
+        npcRotationY = -Math.PI / 2;
       }
 
       const padGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.1, 16);
@@ -311,9 +317,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       bGroup.position.set(b.position[0], 0, b.position[2]);
       scene.add(bGroup);
 
-      // =========================================================
-      // 3D ROBLOX NPC CHARACTER IN FRONT OF BUILDING ENTRANCE
-      // =========================================================
+      // 3D NPC Resepsionis
       const npcGroup = new THREE.Group();
 
       const npcSkinMat = new THREE.MeshStandardMaterial({ color: 0xFAD090, roughness: 0.5 });
@@ -325,7 +329,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       });
       const npcPantsMat = new THREE.MeshStandardMaterial({ color: 0x0F172A, roughness: 0.6 });
 
-      // NPC Head with Smile Face
       const npcFaceCanvas = document.createElement('canvas');
       npcFaceCanvas.width = 128;
       npcFaceCanvas.height = 128;
@@ -334,14 +337,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         nfctx.fillStyle = '#FAD090';
         nfctx.fillRect(0, 0, 128, 128);
         nfctx.fillStyle = '#0F172A';
-        // Friendly Eyes
         nfctx.fillRect(30, 42, 16, 22);
         nfctx.fillRect(82, 42, 16, 22);
-        // Catchlight
         nfctx.fillStyle = '#FFFFFF';
         nfctx.fillRect(38, 44, 6, 8);
         nfctx.fillRect(90, 44, 6, 8);
-        // Smile
         nfctx.strokeStyle = '#0F172A';
         nfctx.beginPath();
         nfctx.arc(64, 82, 18, 0.1 * Math.PI, 0.9 * Math.PI);
@@ -360,7 +360,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       npcHead.castShadow = true;
       npcGroup.add(npcHead);
 
-      // NPC Floating Nametag Billboard above head
       const nameCanvas = document.createElement('canvas');
       nameCanvas.width = 320;
       nameCanvas.height = 100;
@@ -389,18 +388,15 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       nameMesh.position.set(0, 2.35, 0);
       npcGroup.add(nameMesh);
 
-      // NPC Torso (Suit / Uniform)
       const npcTorso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.05, 0.52), npcShirtMat);
       npcTorso.position.y = 0.82;
       npcTorso.castShadow = true;
       npcGroup.add(npcTorso);
 
-      // Tie / Badge on chest
       const npcTie = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.05), npcNeonMat);
       npcTie.position.set(0, 0.9, 0.28);
       npcGroup.add(npcTie);
 
-      // NPC Arms (Left arm can wave)
       const npcArmGeo = new THREE.BoxGeometry(0.35, 0.95, 0.42);
       const npcLeftArm = new THREE.Mesh(npcArmGeo, npcShirtMat);
       npcLeftArm.position.set(-0.68, 0.82, 0);
@@ -412,7 +408,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       npcRightArm.castShadow = true;
       npcGroup.add(npcRightArm);
 
-      // NPC Legs
       const npcLegGeo = new THREE.BoxGeometry(0.42, 0.85, 0.42);
       const npcLeftLeg = new THREE.Mesh(npcLegGeo, npcPantsMat);
       npcLeftLeg.position.set(-0.23, -0.05, 0);
@@ -422,7 +417,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       npcRightLeg.position.set(0.23, -0.05, 0);
       npcGroup.add(npcRightLeg);
 
-      // Position NPC in world
       const worldNpcX = b.position[0] + npcOffsetX;
       const worldNpcZ = b.position[2] + npcOffsetZ;
       npcGroup.position.set(worldNpcX, 0, worldNpcZ);
@@ -463,7 +457,60 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     ];
     lightCoords.forEach(([lx, lz]) => addStreetLight(lx, lz));
 
-    // 6. Playable Roblox Player Character Rig
+    // =========================================================
+    // 6. 3D HOLOGRAPHIC WAYPOINT BEACON IN THE SKY
+    // =========================================================
+    const beaconGeo = new THREE.CylinderGeometry(0.4, 0.4, 50, 16);
+    const beaconMat = new THREE.MeshBasicMaterial({ 
+      color: 0x00A2FF, 
+      transparent: true, 
+      opacity: 0.38 
+    });
+    const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+    scene.add(beaconMesh);
+
+    // =========================================================
+    // 7. 3D COMPASS ARROW AT PLAYER FEET (REAL-TIME GPS POINTER)
+    // =========================================================
+    const compassArrowGroup = new THREE.Group();
+
+    // Pulsing Outer Ring
+    const ringGeo = new THREE.RingGeometry(1.3, 1.48, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ 
+      color: 0x00E5FF, 
+      side: THREE.DoubleSide, 
+      transparent: true, 
+      opacity: 0.7 
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = -Math.PI / 2;
+    compassArrowGroup.add(ringMesh);
+
+    // Sharp Directional Chevron Pointer
+    const arrowShape = new THREE.Shape();
+    arrowShape.moveTo(0, 2.2);
+    arrowShape.lineTo(0.7, 0.6);
+    arrowShape.lineTo(0.2, 0.8);
+    arrowShape.lineTo(0, 0.9);
+    arrowShape.lineTo(-0.2, 0.8);
+    arrowShape.lineTo(-0.7, 0.6);
+    arrowShape.closePath();
+
+    const arrowGeo = new THREE.ShapeGeometry(arrowShape);
+    const arrowMat = new THREE.MeshBasicMaterial({ 
+      color: 0x00E5FF, 
+      side: THREE.DoubleSide, 
+      transparent: true, 
+      opacity: 0.95 
+    });
+    const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
+    arrowMesh.rotation.x = -Math.PI / 2;
+    compassArrowGroup.add(arrowMesh);
+
+    compassArrowGroup.position.set(0, 0.08, 0);
+    scene.add(compassArrowGroup);
+
+    // 8. Playable Roblox Player Character Rig
     const playerGroup = new THREE.Group();
 
     const skinMat = new THREE.MeshStandardMaterial({ color: 0xFAD090, roughness: 0.5 });
@@ -558,8 +605,14 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     orb.position.set(0.9, 1.9, -0.4);
     playerGroup.add(orb);
 
+    // Start facing North (towards Brand Owner OS)
     playerGroup.position.set(0, 1.35, 6);
+    playerGroup.rotation.y = Math.PI; // Look North
     scene.add(playerGroup);
+
+    // Camera Orbit State: always maintains smooth 3rd person follow behind character
+    let cameraYaw = Math.PI;
+    let targetCameraYaw = Math.PI;
 
     playerTeleportRef.current = (tx: number, tz: number) => {
       playerGroup.position.x = tx;
@@ -567,7 +620,17 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       playerGroup.position.y = 1.35;
     };
 
-    // Movement Physics & State
+    // Auto-Align Camera & Character to current compass target
+    alignCameraToTargetRef.current = () => {
+      const curTarget = activeCompassTarget;
+      const tdx = curTarget.position[0] - playerGroup.position.x;
+      const tdz = curTarget.position[2] - playerGroup.position.z;
+      const angle = Math.atan2(tdx, tdz);
+      playerGroup.rotation.y = angle;
+      targetCameraYaw = angle;
+      cameraYaw = angle;
+    };
+
     const keys: Record<string, boolean> = {};
     const handleKeyDown = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
@@ -596,7 +659,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       return null;
     };
 
-    // 7. Animation Loop
+    // 9. Main Game Loop
     let animId: number;
     let lastTime = performance.now();
 
@@ -630,8 +693,12 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         playerGroup.position.x += normX;
         playerGroup.position.z += normZ;
 
+        // Player rotates towards movement direction
         const targetAngle = Math.atan2(normX, normZ);
         playerGroup.rotation.y = targetAngle;
+
+        // Smoothly orbit camera behind character's back so character is ALWAYS facing forward
+        targetCameraYaw = targetAngle;
 
         walkCycle += delta * 15;
         leftLeg.rotation.x = Math.sin(walkCycle) * 0.7;
@@ -670,7 +737,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       npcsList.forEach(npc => {
         const dist = Math.hypot(playerGroup.position.x - npc.pos.x, playerGroup.position.z - npc.pos.z);
         if (dist < 7.5) {
-          // Waving hand
           npc.waveArm.rotation.x = -Math.PI / 2 + Math.sin(elapsedTime * 8) * 0.4;
           npc.waveArm.rotation.z = Math.sin(elapsedTime * 6) * 0.25;
         } else {
@@ -678,6 +744,30 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           npc.waveArm.rotation.z = 0;
         }
       });
+
+      // Update 3D GPS Compass Arrow & Distance
+      compassArrowGroup.position.x = playerGroup.position.x;
+      compassArrowGroup.position.z = playerGroup.position.z;
+
+      const targetX = activeCompassTarget.position[0];
+      const targetZ = activeCompassTarget.position[2];
+      const tdx = targetX - playerGroup.position.x;
+      const tdz = targetZ - playerGroup.position.z;
+      const compassAngle = Math.atan2(tdx, tdz);
+      compassArrowGroup.rotation.y = compassAngle;
+
+      const pulse = 1 + Math.sin(elapsedTime * 4.5) * 0.08;
+      compassArrowGroup.scale.set(pulse, 1, pulse);
+
+      // Sky Waypoint Light Beam on target building
+      beaconMesh.position.set(targetX, activeCompassTarget.height + 25, targetZ);
+      beaconMesh.rotation.y += 0.02;
+      (beaconMesh.material as THREE.MeshBasicMaterial).color.setHex(activeCompassTarget.neonColor);
+      (arrowMesh.material as THREE.MeshBasicMaterial).color.setHex(activeCompassTarget.neonColor);
+      (ringMesh.material as THREE.MeshBasicMaterial).color.setHex(activeCompassTarget.neonColor);
+
+      const curDist = Math.round(Math.hypot(tdx, tdz));
+      setDistanceToTarget(curDist);
 
       // Coordinates
       setPlayerCoord({
@@ -692,20 +782,25 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           setActiveDialogue(near);
         }
       } else {
-        // Player walked away: reset dismissed ID so dialogue can trigger again when returning
         setActiveDialogue(null);
         setDismissedId(null);
       }
 
-      // Camera Follow
-      const isMob = checkIsMobile();
-      const currentCameraOffset = isMob 
-        ? new THREE.Vector3(0, 6.2, 13.2) 
-        : new THREE.Vector3(0, 4.8, 9.2);
+      // Smooth Orbit Camera behind character
+      let angleDiff = targetCameraYaw - cameraYaw;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      cameraYaw += angleDiff * (isMobile ? 0.065 : 0.055);
 
-      const targetCamPos = playerGroup.position.clone().add(currentCameraOffset);
-      camera.position.lerp(targetCamPos, 0.08);
-      camera.lookAt(playerGroup.position.x, playerGroup.position.y + 0.9, playerGroup.position.z);
+      const camDist = isMobile ? 11.4 : 8.8;
+      const camHeight = isMobile ? 5.8 : 4.4;
+
+      const targetCamX = playerGroup.position.x - Math.sin(cameraYaw) * camDist;
+      const targetCamZ = playerGroup.position.z - Math.cos(cameraYaw) * camDist;
+      const targetCamY = playerGroup.position.y + camHeight;
+
+      camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.1);
+      camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.0, playerGroup.position.z);
 
       renderer.render(scene, camera);
     };
@@ -733,7 +828,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       }
       renderer.dispose();
     };
-  }, [onBuildingSelect, dismissedId]);
+  }, [onBuildingSelect, dismissedId, activeCompassTarget]);
 
   return (
     <div className="relative w-full h-full overflow-hidden select-none">
@@ -741,9 +836,63 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
       {/* ========================================================= */}
+      {/* SMART GPS COMPASS NAVIGATOR (TOP-CENTER HUD) */}
+      {/* ========================================================= */}
+      <div className="absolute top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-cyan-500/40 shadow-xl text-xs max-w-[94vw]">
+          <div className="flex items-center gap-1 font-mono text-cyan-400 font-bold flex-shrink-0">
+            <Compass className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+            <span className="hidden xs:inline">GPS:</span>
+          </div>
+
+          <div className="relative flex items-center">
+            <select
+              value={activeCompassTarget.id}
+              onChange={(e) => {
+                const found = portfolioProjects.find(item => item.id === e.target.value);
+                if (found) {
+                  setActiveCompassTarget(found);
+                  if (alignCameraToTargetRef.current) {
+                    setTimeout(() => alignCameraToTargetRef.current?.(), 50);
+                  }
+                }
+              }}
+              className="bg-slate-900 text-white font-bold cursor-pointer rounded-lg px-2 py-0.5 text-xs outline-none border border-white/10 max-w-[130px] sm:max-w-[200px] truncate"
+            >
+              {portfolioProjects.map(b => (
+                <option key={b.id} value={b.id} className="bg-slate-950 text-white">
+                  {b.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
+          </div>
+
+          <span 
+            className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+            style={{ 
+              backgroundColor: `#${activeCompassTarget.neonColor.toString(16).padStart(6, '0')}22`,
+              color: `#${activeCompassTarget.neonColor.toString(16).padStart(6, '0')}`
+            }}
+          >
+            {distanceToTarget}m
+          </span>
+
+          <button
+            onClick={() => alignCameraToTargetRef.current?.()}
+            className="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-[10px] sm:text-xs flex items-center gap-1 shadow cursor-pointer active:scale-95 flex-shrink-0"
+            title="Hadapkan karakter dan kamera presisi lurus ke gedung tujuan"
+          >
+            <Target className="w-3 h-3" />
+            <span className="hidden sm:inline">Arahkan</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
       {/* MOBILE RADAR TOGGLE BUTTON (COMPACT PILL IN TOP-LEFT) */}
       {/* ========================================================= */}
-      <div className="sm:hidden absolute top-14 left-3 z-30 pointer-events-auto">
+      <div className="sm:hidden absolute top-28 left-3 z-30 pointer-events-auto">
         <button
           onClick={() => setMobileRadarOpen(!mobileRadarOpen)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/85 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold shadow-lg cursor-pointer active:scale-95"
@@ -775,13 +924,17 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             {portfolioProjects.map(b => {
               const mapX = 72 + (b.position[0] / 48) * 60;
               const mapY = 72 + (b.position[2] / 48) * 60;
-              const isNear = activeDialogue?.id === b.id;
+              const isTarget = activeCompassTarget.id === b.id;
               return (
                 <div
                   key={b.id}
                   title={b.name}
-                  className={`absolute w-2.5 h-2.5 rounded-sm -translate-x-1/2 -translate-y-1/2 transition-all ${
-                    isNear ? 'ring-2 ring-white scale-150 animate-pulse' : ''
+                  onClick={() => {
+                    setActiveCompassTarget(b);
+                    alignCameraToTargetRef.current?.();
+                  }}
+                  className={`absolute w-2.5 h-2.5 rounded-sm -translate-x-1/2 -translate-y-1/2 transition-all cursor-pointer ${
+                    isTarget ? 'ring-2 ring-white scale-150 animate-pulse' : ''
                   }`}
                   style={{
                     left: `${mapX}px`,
@@ -812,7 +965,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       {/* MOBILE RADAR DROPDOWN MODAL */}
       {/* ========================================================= */}
       {mobileRadarOpen && (
-        <div className="sm:hidden absolute top-24 left-3 right-3 z-40 bg-slate-950/95 backdrop-blur-xl rounded-2xl p-4 border border-cyan-500/40 shadow-2xl space-y-3 animate-fade-in pointer-events-auto">
+        <div className="sm:hidden absolute top-28 left-3 right-3 z-40 bg-slate-950/95 backdrop-blur-xl rounded-2xl p-4 border border-cyan-500/40 shadow-2xl space-y-3 animate-fade-in pointer-events-auto">
           <div className="flex items-center justify-between text-xs font-mono text-cyan-300 font-bold border-b border-white/10 pb-2">
             <div className="flex items-center gap-1.5">
               <Compass className="w-4 h-4 text-cyan-400" />
@@ -836,13 +989,13 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               {portfolioProjects.map(b => {
                 const mapX = 88 + (b.position[0] / 48) * 75;
                 const mapY = 88 + (b.position[2] / 48) * 75;
-                const isNear = activeDialogue?.id === b.id;
+                const isTarget = activeCompassTarget.id === b.id;
                 return (
                   <div
                     key={b.id}
                     title={b.name}
                     className={`absolute w-3 h-3 rounded-sm -translate-x-1/2 -translate-y-1/2 transition-all ${
-                      isNear ? 'ring-2 ring-white scale-150 animate-pulse' : ''
+                      isTarget ? 'ring-2 ring-white scale-150 animate-pulse' : ''
                     }`}
                     style={{
                       left: `${mapX}px`,
@@ -868,12 +1021,14 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               <button
                 key={b.id}
                 onClick={() => {
+                  setActiveCompassTarget(b);
                   if (playerTeleportRef.current) {
                     playerTeleportRef.current(b.position[0], b.position[2] + (b.position[2] < 0 ? 5 : -5));
                   }
                   setMobileRadarOpen(false);
                   setDismissedId(null);
                   setActiveDialogue(b);
+                  setTimeout(() => alignCameraToTargetRef.current?.(), 100);
                 }}
                 className="p-1.5 rounded-lg bg-slate-900 border border-white/5 text-left flex items-center gap-1.5 text-[10px] text-slate-300 active:bg-cyan-500/20"
               >
@@ -901,14 +1056,16 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             <button
               key={b.id}
               onClick={() => {
+                setActiveCompassTarget(b);
                 if (playerTeleportRef.current) {
                   playerTeleportRef.current(b.position[0], b.position[2] + (b.position[2] < 0 ? 5 : -5));
                 }
                 setDismissedId(null);
                 setActiveDialogue(b);
+                setTimeout(() => alignCameraToTargetRef.current?.(), 100);
               }}
               className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
-                activeDialogue?.id === b.id
+                activeCompassTarget.id === b.id
                   ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
                   : 'text-slate-300 hover:bg-white/5 hover:text-white'
               }`}
@@ -932,10 +1089,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             className="roblox-panel p-4 sm:p-5 border-2 shadow-2xl bg-slate-950/95 backdrop-blur-xl rounded-3xl space-y-3"
             style={{ borderColor: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}` }}
           >
-            {/* NPC Header & Nametag */}
             <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
               <div className="flex items-center gap-3">
-                {/* 3D NPC Head Avatar Badge */}
                 <div 
                   className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg flex-shrink-0 border border-white/20"
                   style={{ backgroundColor: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}` }}
@@ -960,7 +1115,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                 </div>
               </div>
 
-              {/* Sound & Close Buttons */}
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setDialogueSfxEnabled(!dialogueSfxEnabled)}
@@ -982,10 +1136,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               </div>
             </div>
 
-            {/* Typewriter Dialogue Speech Bubble */}
             <div 
               onClick={() => {
-                // Click bubble to instantly reveal full text
                 setDisplayedText(activeDialogue.dialogueText);
                 setIsTypingDone(true);
               }}
@@ -999,7 +1151,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
               <button
                 onClick={() => onBuildingSelect(activeDialogue)}
@@ -1031,24 +1182,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                 Permisi ✕
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* CONTROLS HINT NOTIFICATION (DESKTOP) */}
-      {/* ========================================================= */}
-      {controlsHintVisible && (
-        <div className="hidden sm:block absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-          <div className="bg-slate-950/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-xl flex items-center gap-3 text-xs text-slate-300">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>Gunakan tombol <strong>W, A, S, D</strong> untuk berjalan & <strong>SPASI</strong> untuk melompat</span>
-            <button 
-              onClick={() => setControlsHintVisible(false)}
-              className="text-slate-400 hover:text-white ml-1 cursor-pointer"
-            >
-              ✕
-            </button>
           </div>
         </div>
       )}
