@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --roblox-red: #E2231A;
+    --roblox-dark: #0F141C;
+    --roblox-card: #19212D;
+    --roblox-accent: #00A2FF;
+    --roblox-gold: #FFB800;
+    --roblox-green: #00E676;
+    --roblox-border: rgba(255, 255, 255, 0.12);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #080B10;
+    color: #F3F4F6;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    user-select: none;
+  }
+}
+
+/* 16:9 Frame Container like jillywosy.com */
+.canvas-wrapper {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, #151D2A 0%, #080C14 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cinematic-frame {
+  position: relative;
+  width: min(100vw, 177.7778vh);
+  height: min(56.25vw, 100vh);
+  overflow: hidden;
+  box-shadow: 0 0 100px rgba(0, 0, 0, 0.9);
+}
+
+@media (orientation: portrait) {
+  .cinematic-frame {
+    width: 100vw;
+    height: 100vh;
+  }
+}
+
+/* Glassmorphism Roblox Gaming Panel */
+.roblox-panel {
+  background: rgba(18, 24, 38, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.roblox-panel-glow {
+  border-color: rgba(0, 162, 255, 0.4);
+  box-shadow: 0 0 25px rgba(0, 162, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Floating particles background canvas */
+.dust-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* 3D Canvas container */
+.three-canvas-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+/* Custom scrollbars inside modals */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 20, 28, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
