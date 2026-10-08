@@ -34,6 +34,7 @@
   inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: radial-gradient(circle at 50% 50%, #151D2A 0%, #080C14 100%);
   display: flex;
@@ -45,6 +46,7 @@
   position: relative;
   width: min(100vw, 177.7778vh);
   height: min(56.25vw, 100vh);
+  height: min(56.25vw, 100dvh);
   overflow: hidden;
   box-shadow: 0 0 100px rgba(0, 0, 0, 0.9);
 }
@@ -53,6 +55,7 @@
   .cinematic-frame {
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
   }
 }
 

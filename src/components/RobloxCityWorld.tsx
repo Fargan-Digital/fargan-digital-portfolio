@@ -16,8 +16,6 @@ import {
   X,
   RotateCcw,
   RotateCw,
-  ZoomIn,
-  ZoomOut,
   Navigation
 } from 'lucide-react';
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
@@ -48,9 +46,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   // Player Teleport Ref
   const playerTeleportRef = useRef<((x: number, z: number) => void) | null>(null);
 
-  // Camera Orbit & Zoom Control Refs (Google Maps style)
+  // Camera Orbit & Reset Control Refs (Google Maps style)
   const rotateCameraRef = useRef<((delta: number) => void) | null>(null);
-  const zoomCameraRef = useRef<((delta: number) => void) | null>(null);
   const resetCameraRef = useRef<(() => void) | null>(null);
 
   // Mobile controller touch states
@@ -599,9 +596,6 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
 
     rotateCameraRef.current = (delta: number) => {
       targetCameraAngle += delta;
-    };
-    zoomCameraRef.current = (delta: number) => {
-      targetCameraDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetCameraDistance + delta));
     };
     resetCameraRef.current = () => {
       targetCameraAngle = 0;
@@ -1230,118 +1224,109 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* GOOGLE MAPS STYLE CAMERA CONTROL TOOLBAR (ORBIT & ZOOM) */}
+      {/* COMPACT CAMERA ROTATE & COMPASS HELPER (TOP-RIGHT) */}
       {/* ========================================================= */}
-      <div className="absolute bottom-24 right-3 sm:bottom-6 sm:right-6 z-30 pointer-events-auto flex flex-col items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-2xl">
-        {/* Reset / North */}
-        <button
-          onClick={() => resetCameraRef.current?.()}
-          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 transition-colors shadow active:scale-95 cursor-pointer"
-          title="Reset Sudut Pandang (Arah Utara)"
-        >
-          <Navigation className="w-4 h-4" />
-        </button>
-
-        {/* Rotate Left */}
+      <div className="absolute top-14 right-3 sm:top-16 sm:right-60 z-30 pointer-events-auto flex items-center gap-1 bg-slate-950/85 backdrop-blur-md px-2 py-1.5 rounded-full border border-cyan-500/30 shadow-xl">
         <button
           onClick={() => rotateCameraRef.current?.(-Math.PI / 4)}
-          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
+          className="p-1.5 rounded-full bg-slate-900/90 text-slate-300 hover:text-white active:bg-cyan-500 active:text-slate-950 transition-colors active:scale-95 cursor-pointer shadow"
           title="Putar Kamera ke Kiri (45°)"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3.5 h-3.5" />
         </button>
-
-        {/* Rotate Right */}
+        <button
+          onClick={() => resetCameraRef.current?.()}
+          className="px-2.5 py-1 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-mono font-bold active:scale-95 cursor-pointer flex items-center gap-1 shadow"
+          title="Reset Sudut Pandang (Arah Utara)"
+        >
+          <Navigation className="w-3 h-3 text-cyan-400" />
+          <span>Utara</span>
+        </button>
         <button
           onClick={() => rotateCameraRef.current?.(Math.PI / 4)}
-          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
+          className="p-1.5 rounded-full bg-slate-900/90 text-slate-300 hover:text-white active:bg-cyan-500 active:text-slate-950 transition-colors active:scale-95 cursor-pointer shadow"
           title="Putar Kamera ke Kanan (45°)"
         >
-          <RotateCw className="w-4 h-4" />
-        </button>
-
-        <div className="w-4 h-px bg-white/10 my-0.5" />
-
-        {/* Zoom In */}
-        <button
-          onClick={() => zoomCameraRef.current?.(-2.5)}
-          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
-          title="Perbesar / Dekatkan Tampilan (+)"
-        >
-          <ZoomIn className="w-4 h-4" />
-        </button>
-
-        {/* Zoom Out */}
-        <button
-          onClick={() => zoomCameraRef.current?.(2.5)}
-          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors shadow active:scale-95 cursor-pointer"
-          title="Perkecil / Jauhkan Tampilan (-)"
-        >
-          <ZoomOut className="w-4 h-4" />
+          <RotateCw className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* ========================================================= */}
-      {/* MOBILE TOUCH CONTROLS (VIRTUAL D-PAD & JUMP) */}
+      {/* MOBILE TOUCH CONTROLS (VIRTUAL D-PAD & JUMP - ELEVATED) */}
       {/* ========================================================= */}
-      <div className="sm:hidden absolute bottom-5 left-3 z-30 pointer-events-auto">
-        <div className="grid grid-cols-3 gap-1.5 w-32 h-32 p-1.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-white/10 shadow-2xl">
+      <div className="sm:hidden absolute bottom-7 left-4 z-40 pointer-events-auto">
+        <div className="grid grid-cols-3 gap-1.5 w-36 h-36 p-1.5 rounded-2xl bg-slate-950/90 backdrop-blur-xl border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.85)]">
           <div />
           <button
-            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.forward = true; }}
-            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.forward = false; }}
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.forward = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.forward = false; }}
+            onTouchCancel={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.forward = false; }}
             onMouseDown={() => { mobileInputRef.current.forward = true; }}
             onMouseUp={() => { mobileInputRef.current.forward = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
+            onMouseLeave={() => { mobileInputRef.current.forward = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            aria-label="Maju"
           >
-            <ArrowUp className="w-6 h-6" />
+            <ArrowUp className="w-7 h-7" strokeWidth={2.5} />
           </button>
           <div />
 
           <button
-            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.left = true; }}
-            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.left = false; }}
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.left = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.left = false; }}
+            onTouchCancel={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.left = false; }}
             onMouseDown={() => { mobileInputRef.current.left = true; }}
             onMouseUp={() => { mobileInputRef.current.left = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
+            onMouseLeave={() => { mobileInputRef.current.left = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            aria-label="Kiri"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-7 h-7" strokeWidth={2.5} />
           </button>
-          <div className="flex items-center justify-center text-[9px] text-cyan-400/70 font-mono font-bold">
+          <div className="flex items-center justify-center text-[10px] text-cyan-400 font-mono font-black tracking-wider">
             MOVE
           </div>
           <button
-            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.right = true; }}
-            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.right = false; }}
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.right = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.right = false; }}
+            onTouchCancel={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.right = false; }}
             onMouseDown={() => { mobileInputRef.current.right = true; }}
             onMouseUp={() => { mobileInputRef.current.right = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
+            onMouseLeave={() => { mobileInputRef.current.right = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            aria-label="Kanan"
           >
-            <ArrowRight className="w-6 h-6" />
+            <ArrowRight className="w-7 h-7" strokeWidth={2.5} />
           </button>
 
           <div />
           <button
-            onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.backward = true; }}
-            onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.backward = false; }}
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.backward = true; }}
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.backward = false; }}
+            onTouchCancel={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.backward = false; }}
             onMouseDown={() => { mobileInputRef.current.backward = true; }}
             onMouseUp={() => { mobileInputRef.current.backward = false; }}
-            className="flex items-center justify-center rounded-xl bg-slate-800/80 active:bg-cyan-500 text-white active:text-slate-950 shadow touch-none"
+            onMouseLeave={() => { mobileInputRef.current.backward = false; }}
+            className="flex items-center justify-center rounded-xl bg-slate-900/95 border border-white/10 active:bg-cyan-400 text-cyan-300 active:text-slate-950 shadow-md transition-all active:scale-95 touch-none"
+            aria-label="Mundur"
           >
-            <ArrowDown className="w-6 h-6" />
+            <ArrowDown className="w-7 h-7" strokeWidth={2.5} />
           </button>
           <div />
         </div>
       </div>
 
-      {/* Mobile Jump Button */}
-      <div className="sm:hidden absolute bottom-5 right-3 z-30 pointer-events-auto">
+      {/* Mobile Jump Button - Elevated */}
+      <div className="sm:hidden absolute bottom-7 right-4 z-40 pointer-events-auto">
         <button
-          onTouchStart={(e) => { e.preventDefault(); mobileInputRef.current.jump = true; }}
-          onTouchEnd={(e) => { e.preventDefault(); mobileInputRef.current.jump = false; }}
+          onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.jump = true; }}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.jump = false; }}
+          onTouchCancel={(e) => { e.preventDefault(); e.stopPropagation(); mobileInputRef.current.jump = false; }}
           onMouseDown={() => { mobileInputRef.current.jump = true; }}
           onMouseUp={() => { mobileInputRef.current.jump = false; }}
-          className="w-16 h-16 rounded-full bg-cyan-500 active:bg-cyan-400 text-slate-950 font-black text-xs shadow-2xl flex flex-col items-center justify-center gap-0.5 border-2 border-white/20 active:scale-95 touch-none"
+          onMouseLeave={() => { mobileInputRef.current.jump = false; }}
+          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-500 text-slate-950 font-black text-xs shadow-[0_10px_30px_rgba(0,229,255,0.4)] flex flex-col items-center justify-center gap-0.5 border-2 border-white/40 active:scale-90 transition-transform touch-none cursor-pointer"
+          aria-label="Lompat"
         >
           <Footprints className="w-5 h-5" />
           <span>JUMP</span>
