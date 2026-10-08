@@ -194,5 +194,74 @@ https://fargan-digital.pages.dev               https://fargan-digital.pages.dev/
 
 ---
 
+## 📐 7. Rumus Tata Letak Gedung & Kapasitas Kota 3D
+
+### A. Sistem Koordinat Kartesius 3D Kota ($X, Y, Z$)
+Peta kota 3D Fargan Digital berukuran **$120 \times 120$ meter** (dari rentang koordinat $-60$ hingga $+60$):
+
+```
+                   UTARA (-Z)
+                       │
+       [-26, -20]      │       [+26, -20]
+      (Blok Barat-Utara)│     (Blok Timur-Utara)
+                       │
+BARAT (-X) ───────────[0, 0]─────────── TIMUR (+X)
+                   (Plaza Pusat)
+                       │
+       [-26, +24]      │       [+26, +24]
+     (Blok Barat-Selatan)│    (Blok Timur-Selatan)
+                       │
+                  SELATAN (+Z)
+```
+
+1. **Sumbu $X$ (Horisontal / Kiri-Kanan):**
+   - Nilai **Negatif ($-X$):** Area Barat (kiri jalan utama)
+   - Nilai **Positif ($+X$):** Area Timur (kanan jalan utama)
+2. **Sumbu $Y$ (Tinggi / Ketinggian Gedung):**
+   - Lantai dasar tanah berada pada $Y = 0$.
+   - Three.js meletakkan poros kubus di tengah badan gedung, sehingga:
+     $$Y = \frac{\text{Tinggi Gedung}}{2}$$
+     *(Contoh: Jika tinggi gedung $10\text{m}$, maka nilai $Y$ adalah $5\text{m}$ agar pondasi menempel pas di tanah).*
+3. **Sumbu $Z$ (Maju-Mundur / Kedalaman):**
+   - Nilai **Negatif ($-Z$):** Arah Utara (atas peta)
+   - Nilai **Positif ($+Z$):** Arah Selatan (bawah peta)
+   - Titik Lahir Pemain (*Spawn Point*): $[X=0, Z=6]$ (berdiri menghadap Plaza Pusat).
+
+---
+
+### B. Rumus Jarak Aman Gedung (Anti-Tabrakan & Anti-Dempet)
+Setiap gedung rata-rata memiliki lebar $W \approx 7.5 - 10\text{ meter}$ dan ketebalan $D \approx 7 - 8\text{ meter}$.
+
+#### 1. Rumus Jarak Euclidean Antar Pusat Gedung:
+$$\text{Jarak } (d) = \sqrt{(X_1 - X_2)^2 + (Z_1 - Z_2)^2}$$
+
+#### 2. Syarat Mutlak Anti-Tabrakan:
+$$d \ge \frac{W_1 + W_2}{2} + 4\text{ meter (ruang trotoar \& jalan kaki)}$$
+
+#### 3. Aturan Praktis (Rule of Thumb) yang Sangat Mudah Diingat:
+- **Jarak Antar Pusat Gedung:** Minimal berjarak **$14 - 16\text{ meter}$**.
+- **Area Terlarang (Zona Bebas Gedung):**
+  - Jangan menaruh gedung pada rentang $X = [-6 \text{ s/d } 6]$ dan $Z = [-8 \text{ s/d } 10]$ karena area tersebut adalah **Monumen Kristal Plaza & Jalur Spawn Karakter**.
+- **Slot Kavling Terbaik di Sepanjang Jalan Raya:**
+  - **Sisi Utara (Avenue North):** $Z \in [-16, -26]$, dengan variasi $X \in [-30, -16, 0, 16, 30]$
+  - **Sisi Selatan (Avenue South):** $Z \in [+20, +28]$, dengan variasi $X \in [-30, -16, 0, 16, 30]$
+  - **Sayap Barat (West Boulevard):** $X \in [-24, -32]$, dengan variasi $Z \in [-14, -2, 12, 22]$
+  - **Sayap Timur (East Boulevard):** $X \in [+24, +32]$, dengan variasi $Z \in [-14, -2, 12, 22]$
+
+> 💡 **Fitur Bantuan di `/Alfarghan`:**  
+> Di formulir penambahan gedung, Anda cukup klik tombol **`✨ Slot Otomatis`**. Algoritma cerdas kami sudah diprogram menghitung rumus di atas secara instan dan langsung memilihkan koordinat kavling kosong yang paling presisi tanpa risiko bertubrukan!
+
+---
+
+### C. Kapasitas: Berapa Gedung yang Bisa Dibuat?
+
+| Aspek | Estimasi Jumlah | Penjelasan Teknis |
+| :--- | :---: | :--- |
+| **Kenyamanan Tata Kota Saat Ini** | **30 – 50 Gedung** | Pada ukuran peta saat ini ($120 \times 120\text{m}$), jumlah 30–50 gedung memberikan ruang kota yang padat, futuristik, tetap rapi dengan jalanan dan trotoar luas. |
+| **Batas Performa Browser & Smartphone** | **150 – 300+ Gedung** | Karena kita menggunakan geometri prosedural kubus Three.js yang sangat ringan (hanya 12–24 poligon per gedung), ponsel mid-range mampu merender ratusan gedung pada kecepatan 60 FPS tanpa penurunan performa. |
+| **Rekomendasi Bisnis & Portofolio** | **15 – 35 Gedung** | Jumlah optimal agar calon klien tidak tersesat atau kelelahan menjelajah, sehingga setiap karya yang Anda tampilkan mendapat sorotan dan impresi maksimal. |
+
+---
+
 *Cetak biru ini dirancang untuk memastikan Fargan Digital terus berkembang menjadi agensi teknologi dan solusi perangkat lunak terdepan di Indonesia.*  
 **Maju terus, Partner! 🚀**
