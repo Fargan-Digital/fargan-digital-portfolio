@@ -3,8 +3,10 @@ import confetti from 'canvas-confetti';
 import { DustCanvas } from './components/DustCanvas';
 import { VoxelAvatar3D } from './components/VoxelAvatar3D';
 import { RobloxCityWorld } from './components/RobloxCityWorld';
-import { portfolioProjects, type CityBuilding } from './data/portfolioProjects';
+import { type CityBuilding } from './data/portfolioProjects';
 import { soundEngine } from './utils/audioManager';
+import { AdminPortal } from './components/AdminPortal';
+import { projectStorage } from './utils/projectStorage';
 import { 
   Sparkles, 
   ChevronRight, 
@@ -26,7 +28,8 @@ import {
 } from 'lucide-react';
 
 export function App() {
-  const [viewMode, setViewMode] = useState<'city' | 'cinematic'>('city');
+  const [viewMode, setViewMode] = useState<'city' | 'cinematic' | 'alfarghan'>('city');
+  const [projects, setProjects] = useState<CityBuilding[]>(projectStorage.getProjects());
   const [currentStage, setCurrentStage] = useState<number>(0);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [selectedBuilding, setSelectedBuilding] = useState<CityBuilding | null>(null);
@@ -35,6 +38,38 @@ export function App() {
 
   const totalStages = 5;
   const stageNames = ['LOBBY', 'KARAKTER', 'KARYA', 'LAYANAN', 'KONTAK'];
+
+  // Check URL route for secret portal /Alfarghan
+  useEffect(() => {
+    const handleUrlRoute = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/alfarghan' || path === '/alfarghan/' || hash === '#alfarghan') {
+        setViewMode('alfarghan');
+      }
+    };
+    handleUrlRoute();
+    window.addEventListener('popstate', handleUrlRoute);
+    return () => window.removeEventListener('popstate', handleUrlRoute);
+  }, []);
+
+  // Secret keyboard shortcut (Alt + A) to toggle /Alfarghan portal
+  useEffect(() => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        window.history.pushState({}, '', '/Alfarghan');
+        setViewMode('alfarghan');
+      }
+    };
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+  }, []);
+
+  // Fetch updated projects from Cloudflare Edge KV
+  useEffect(() => {
+    projectStorage.loadProjects().then(setProjects);
+  }, []);
 
   // Unlock and start audio engine on first user interaction
   useEffect(() => {
@@ -130,17 +165,31 @@ export function App() {
 
   // Filter projects by category
   const filteredProjects = selectedCategory === 'all' 
-    ? portfolioProjects 
-    : portfolioProjects.filter(p => p.categoryGroup === selectedCategory);
+    ? projects 
+    : projects.filter(p => p.categoryGroup === selectedCategory);
 
   const categoriesList = [
-    { id: 'all', label: `Semua (${portfolioProjects.length})` },
+    { id: 'all', label: `Semua (${projects.length})` },
     { id: 'enterprise', label: 'Enterprise & AI' },
     { id: 'fintech_security', label: 'FinTech & Security' },
     { id: 'corporate_b2b', label: 'Korporat B2B' },
     { id: 'property_agency', label: 'Properti & Agensi' },
     { id: 'consumer_lifestyle', label: 'F&B, Fashion & Fitness' },
   ];
+
+  if (viewMode === 'alfarghan') {
+    return (
+      <AdminPortal
+        onBackToCity={() => {
+          window.history.pushState({}, '', '/');
+          setViewMode('city');
+        }}
+        onProjectsUpdated={updatedList => {
+          setProjects(updatedList);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="canvas-wrapper">
@@ -222,6 +271,7 @@ export function App() {
               <RobloxCityWorld 
                 onBuildingSelect={handleBuildingSelect}
                 targetBuildingId={targetBuildingId}
+                projects={projects}
               />
             </div>
           </div>

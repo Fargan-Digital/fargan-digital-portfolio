@@ -26,12 +26,17 @@ export { type CityBuilding } from '../data/portfolioProjects';
 interface RobloxCityWorldProps {
   onBuildingSelect: (building: CityBuilding) => void;
   targetBuildingId?: string | null;
+  projects?: CityBuilding[];
 }
 
 export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({ 
   onBuildingSelect,
-  targetBuildingId
+  targetBuildingId,
+  projects
 }) => {
+  const currentProjects = projects && projects.length > 0 ? projects : portfolioProjects;
+  const currentProjectsRef = useRef(currentProjects);
+  currentProjectsRef.current = currentProjects;
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   const [activeDialogue, setActiveDialogue] = useState<CityBuilding | null>(null);
@@ -109,7 +114,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   // Handle external teleport if targetBuildingId provided
   useEffect(() => {
     if (targetBuildingId && playerTeleportRef.current) {
-      const b = portfolioProjects.find(item => item.id === targetBuildingId);
+      const b = currentProjectsRef.current.find(item => item.id === targetBuildingId);
       if (b) {
         const targetX = b.position[0];
         const targetZ = b.position[2] + (b.position[2] < 0 ? 5 : -5);
@@ -216,8 +221,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       pos: THREE.Vector3 
     }[] = [];
 
-    // 4. Construct All 10 City Buildings + 3D NPCs in front
-    portfolioProjects.forEach(b => {
+    // 4. Construct City Buildings + 3D NPCs in front
+    currentProjectsRef.current.forEach(b => {
       const bGroup = new THREE.Group();
 
       // Building Body
@@ -826,7 +831,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     let stepTimer = 0;
 
     const checkNearestBuilding = (px: number, pz: number): CityBuilding | null => {
-      for (const b of portfolioProjects) {
+      for (const b of currentProjectsRef.current) {
         const dist = Math.hypot(px - b.position[0], pz - b.position[2]);
         const triggerDistance = Math.max(b.width, b.depth) / 2 + 4.2;
         if (dist < triggerDistance) {
@@ -1088,7 +1093,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             <div className="absolute inset-y-0 left-1/2 w-px bg-cyan-500/20" />
             <div className="absolute w-24 h-24 rounded-full border border-cyan-500/20" />
 
-            {portfolioProjects.map(b => {
+            {currentProjects.map(b => {
               const mapX = 72 + (b.position[0] / 48) * 60;
               const mapY = 72 + (b.position[2] / 48) * 60;
               const isNear = activeDialogue?.id === b.id;
@@ -1149,7 +1154,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               <div className="absolute inset-y-0 left-1/2 w-px bg-cyan-500/20" />
               <div className="absolute w-32 h-32 rounded-full border border-cyan-500/20" />
 
-              {portfolioProjects.map(b => {
+              {currentProjects.map(b => {
                 const mapX = 88 + (b.position[0] / 48) * 75;
                 const mapY = 88 + (b.position[2] / 48) * 75;
                 const isNear = activeDialogue?.id === b.id;
@@ -1180,7 +1185,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pt-1">
-            {portfolioProjects.map(b => (
+            {currentProjects.map(b => (
               <button
                 key={b.id}
                 onClick={() => {
@@ -1213,7 +1218,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             <span>Daftar Gedung Karya</span>
             <MapPin className="w-3 h-3 text-cyan-400" />
           </div>
-          {portfolioProjects.map(b => (
+          {currentProjects.map(b => (
             <button
               key={b.id}
               onClick={() => {
