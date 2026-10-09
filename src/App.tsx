@@ -8,6 +8,12 @@ import { soundEngine } from './utils/audioManager';
 import { AdminPortal } from './components/AdminPortal';
 import { projectStorage } from './utils/projectStorage';
 import { 
+  translations, 
+  type Language, 
+  type DayNightMode, 
+  type CharacterGender 
+} from './utils/translations';
+import { 
   Sparkles, 
   ChevronRight, 
   Code2, 
@@ -24,7 +30,9 @@ import {
   Gamepad2, 
   Tv,
   MapPin,
-  Filter
+  Filter,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 export function App() {
@@ -36,8 +44,47 @@ export function App() {
   const [targetBuildingId, setTargetBuildingId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Persistence States: Language, Day/Night Mode, Avatar Gender
+  const [lang, setLang] = useState<Language>(() => {
+    return (localStorage.getItem('fargan_lang') as Language) || 'id';
+  });
+  const [mode, setMode] = useState<DayNightMode>(() => {
+    return (localStorage.getItem('fargan_mode') as DayNightMode) || 'night';
+  });
+  const [gender, setGender] = useState<CharacterGender>(() => {
+    return (localStorage.getItem('fargan_gender') as CharacterGender) || 'male';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('fargan_lang', lang);
+  }, [lang]);
+
+  useEffect(() => {
+    localStorage.setItem('fargan_mode', mode);
+  }, [mode]);
+
+  useEffect(() => {
+    localStorage.setItem('fargan_gender', gender);
+  }, [gender]);
+
+  const toggleLang = () => {
+    soundEngine.playTypewriterBlip();
+    setLang(prev => (prev === 'id' ? 'en' : 'id'));
+  };
+
+  const toggleMode = () => {
+    soundEngine.playTypewriterBlip();
+    setMode(prev => (prev === 'night' ? 'day' : 'night'));
+  };
+
+  const toggleGender = () => {
+    soundEngine.playTypewriterBlip();
+    setGender(prev => (prev === 'male' ? 'female' : 'male'));
+  };
+
+  const t = translations[lang];
   const totalStages = 5;
-  const stageNames = ['LOBBY', 'KARAKTER', 'KARYA', 'LAYANAN', 'KONTAK'];
+  const stageNames = [t.stageLobby, t.stageCharacter, t.stageProjects, t.stageServices, t.stageContact];
 
   // Check URL route for secret portal /Alfarghan
   useEffect(() => {
@@ -139,26 +186,26 @@ export function App() {
   const services = [
     {
       icon: <Code2 className="w-6 h-6 text-cyan-400" />,
-      title: 'Custom Web & SaaS Development',
-      desc: 'Membangun aplikasi web, portal bisnis, dan software SaaS kelas produksi dengan performa ultra-cepat, keamanan enterprise-grade, dan arsitektur serverless modern.',
+      title: t.service1Title,
+      desc: t.service1Desc,
       tag: 'Fullstack Solution'
     },
     {
       icon: <Cpu className="w-6 h-6 text-purple-400" />,
-      title: 'Integrasi AI Agent & Otomasi',
-      desc: 'Mengotomatiskan alur bisnis Anda dengan bot WhatsApp cerdas, pembersihan data otomatis, dan agen AI yang bekerja 24/7 menghemat waktu Anda.',
+      title: t.service2Title,
+      desc: t.service2Desc,
       tag: 'AI Workflows'
     },
     {
       icon: <Layers className="w-6 h-6 text-emerald-400" />,
-      title: 'UI/UX & Interactive Landing Page',
-      desc: 'Merancang antarmuka web modern, estetik, responsif, dan fokus konversi tinggi yang memikat pelanggan dalam 3 detik pertama.',
+      title: t.service3Title,
+      desc: t.service3Desc,
       tag: 'High Conversion'
     },
     {
       icon: <Compass className="w-6 h-6 text-amber-400" />,
-      title: 'Konsultasi Arsitektur Digital',
-      desc: 'Membantu brand owner & pengusaha merancang blueprint teknologi, memotong biaya server yang membengkak, dan menyiapkan skala bisnis.',
+      title: t.service4Title,
+      desc: t.service4Desc,
       tag: 'Strategic Advice'
     }
   ];
@@ -169,12 +216,12 @@ export function App() {
     : projects.filter(p => p.categoryGroup === selectedCategory);
 
   const categoriesList = [
-    { id: 'all', label: `Semua (${projects.length})` },
-    { id: 'enterprise', label: 'Enterprise & AI' },
-    { id: 'fintech_security', label: 'FinTech & Security' },
-    { id: 'corporate_b2b', label: 'Korporat B2B' },
-    { id: 'property_agency', label: 'Properti & Agensi' },
-    { id: 'consumer_lifestyle', label: 'F&B, Fashion & Fitness' },
+    { id: 'all', label: `${t.filterAll} (${projects.length})` },
+    { id: 'enterprise', label: t.filterEnterprise },
+    { id: 'fintech_security', label: t.filterFintech },
+    { id: 'corporate_b2b', label: t.filterCorporate },
+    { id: 'property_agency', label: t.filterProperty },
+    { id: 'consumer_lifestyle', label: t.filterConsumer },
   ];
 
   if (viewMode === 'alfarghan') {
@@ -217,7 +264,7 @@ export function App() {
                 </div>
               </div>
 
-              {/* Mode Switcher Buttons */}
+              {/* Mode Switcher & Global Toggles */}
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <div className="flex bg-slate-900/90 rounded-xl p-0.5 sm:p-1 border border-white/10 text-xs">
                   <button
@@ -225,10 +272,10 @@ export function App() {
                       setViewMode('city');
                       playSfx(520, 'sine');
                     }}
-                    className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer bg-cyan-500 text-slate-950 shadow-md text-[11px] sm:text-xs"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer bg-cyan-500 text-slate-950 shadow-md text-[11px] sm:text-xs"
                   >
                     <Gamepad2 className="w-3.5 h-3.5" />
-                    <span>Kota 3D</span>
+                    <span>{t.cityMode}</span>
                   </button>
 
                   <button
@@ -236,30 +283,61 @@ export function App() {
                       setViewMode('cinematic');
                       playSfx(520, 'sine');
                     }}
-                    className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer text-slate-400 hover:text-white text-[11px] sm:text-xs"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer text-slate-400 hover:text-white text-[11px] sm:text-xs"
                   >
                     <Tv className="w-3.5 h-3.5" />
-                    <span>Presentasi</span>
+                    <span>{t.cinematicMode}</span>
                   </button>
                 </div>
 
+                {/* Day / Night Toggle */}
+                <button
+                  onClick={toggleMode}
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  title={mode === 'day' ? t.nightMode : t.dayMode}
+                >
+                  {mode === 'day' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-cyan-400" />}
+                  <span className="hidden md:inline text-[11px] font-mono font-bold">{mode === 'day' ? t.dayMode : t.nightMode}</span>
+                </button>
+
+                {/* Character Avatar Toggle */}
+                <button
+                  onClick={toggleGender}
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  title="Pilih Model Karakter (Pria / Wanita)"
+                >
+                  <span>{gender === 'female' ? '👧' : '👦'}</span>
+                  <span className="hidden md:inline text-[11px] font-mono font-bold">{gender === 'female' ? t.charFemale : t.charMale}</span>
+                </button>
+
+                {/* Language Toggle */}
+                <button
+                  onClick={toggleLang}
+                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  title="Ganti Bahasa (ID / EN)"
+                >
+                  <span>{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
+                </button>
+
+                {/* Sound BGM Toggle */}
                 <button
                   onClick={() => {
                     const newMuted = soundEngine.toggleMute();
                     setSoundEnabled(!newMuted);
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1.5 transition-colors shadow active:scale-95"
+                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1.5 transition-colors shadow active:scale-95"
                   title="Toggle Suara Musik & Efek"
                 >
                   {soundEnabled ? (
                     <>
                       <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                      <span className="text-[10px] sm:text-[11px] font-mono text-cyan-300 font-bold">BGM 🎵</span>
+                      <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-cyan-300 font-bold">{t.bgmOn}</span>
                     </>
                   ) : (
                     <>
                       <VolumeX className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 font-bold">MUTE 🔇</span>
+                      <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-slate-400 font-bold">{t.bgmMute}</span>
                     </>
                   )}
                 </button>
@@ -272,6 +350,12 @@ export function App() {
                 onBuildingSelect={handleBuildingSelect}
                 targetBuildingId={targetBuildingId}
                 projects={projects}
+                lang={lang}
+                mode={mode}
+                gender={gender}
+                onToggleLang={toggleLang}
+                onToggleMode={toggleMode}
+                onToggleGender={toggleGender}
               />
             </div>
           </div>
@@ -281,10 +365,10 @@ export function App() {
           /* ========================================================= */
           <div className="relative w-full h-full flex flex-col justify-between">
             <DustCanvas />
-            <VoxelAvatar3D currentStage={currentStage} />
+            <VoxelAvatar3D currentStage={currentStage} gender={gender} mode={mode} />
 
-            {/* Topbar HUD */}
-            <header className="relative z-40 w-full px-5 py-4 flex items-center justify-between border-b border-white/10 bg-slate-950/60 backdrop-blur-md">
+            {/* Topbar HUD in Cinematic Mode */}
+            <header className="relative z-40 w-full px-3 sm:px-5 py-3 sm:py-4 flex items-center justify-between border-b border-white/10 bg-slate-950/60 backdrop-blur-md">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center font-black text-white text-xs border border-red-400/50">
                   F
@@ -300,7 +384,37 @@ export function App() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Day / Night Toggle */}
+                <button
+                  onClick={toggleMode}
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  title={mode === 'day' ? t.nightMode : t.dayMode}
+                >
+                  {mode === 'day' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-cyan-400" />}
+                  <span className="hidden md:inline text-[11px] font-mono font-bold">{mode === 'day' ? t.dayMode : t.nightMode}</span>
+                </button>
+
+                {/* Character Gender Toggle */}
+                <button
+                  onClick={toggleGender}
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  title="Pilih Model Karakter (Pria / Wanita)"
+                >
+                  <span>{gender === 'female' ? '👧' : '👦'}</span>
+                  <span className="hidden md:inline text-[11px] font-mono font-bold">{gender === 'female' ? t.charFemale : t.charMale}</span>
+                </button>
+
+                {/* Language Toggle */}
+                <button
+                  onClick={toggleLang}
+                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  title="Ganti Bahasa (ID / EN)"
+                >
+                  <span>{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
+                </button>
+
                 <button
                   onClick={() => {
                     setViewMode('city');
@@ -309,7 +423,7 @@ export function App() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
                 >
                   <Gamepad2 className="w-3.5 h-3.5" />
-                  <span>Kembali ke Kota 3D ➔</span>
+                  <span>{t.backToCityBtn} ➔</span>
                 </button>
               </div>
             </header>
@@ -320,18 +434,18 @@ export function App() {
                 <div className="w-full max-w-2xl roblox-panel roblox-panel-glow p-6 sm:p-8 text-center space-y-5 animate-fade-in my-auto">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono">
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>EXPERIENCE THE DIGITAL REVOLUTION</span>
+                    <span>{t.lobbyBadge}</span>
                   </div>
 
                   <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-                    Ciptakan Software Cerdas. <br />
+                    {t.lobbyHeading1} <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-amber-300">
-                      Bangun Skala Bisnis.
+                      {t.lobbyHeading2}
                     </span>
                   </h1>
 
                   <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-                    Halo, saya adalah kreator di balik <strong>Fargan Digital AI</strong>. Spesialis merancang perangkat lunak kelas industri, arsitektur cloud performa tinggi, dan otomatisasi AI mutakhir untuk pemilik brand & pengusaha.
+                    {t.lobbyBio}
                   </p>
 
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -340,14 +454,14 @@ export function App() {
                       className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-xl shadow-cyan-500/30 cursor-pointer transition-all hover:scale-105"
                     >
                       <Gamepad2 className="w-4 h-4" />
-                      <span>Masuk & Eksplorasi Kota 3D</span>
+                      <span>{t.lobbyEnterCity}</span>
                     </button>
 
                     <button
                       onClick={handleNextStage}
                       className="px-4 py-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 border border-white/10 cursor-pointer transition-all"
                     >
-                      <span>Lihat Profil Karakter</span>
+                      <span>{t.lobbyViewProfile}</span>
                       <ChevronRight className="w-4 h-4 text-cyan-400" />
                     </button>
                   </div>
@@ -359,23 +473,52 @@ export function App() {
                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
-                      <span className="font-mono text-xs font-bold text-cyan-400">STATUS KARAKTER: ONLINE</span>
+                      <span className="font-mono text-xs font-bold text-cyan-400">{t.characterStatus}</span>
                     </div>
-                    <span className="text-xs font-mono text-slate-400">LVL. 99 FULLSTACK ENG</span>
+                    <span className="text-xs font-mono text-slate-400">{t.characterLevel}</span>
                   </div>
 
                   <div className="space-y-3">
-                    <h2 className="text-2xl font-black text-white">Al Fargan Orin</h2>
+                    <h2 className="text-2xl font-black text-white">{t.characterName}</h2>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      Software Engineer & AI Architect yang memadukan keahlian teknik full-stack modern dengan pemahaman mendalam tentang unit ekonomi bisnis, margin profitabilitas, dan konversi pemasaran digital.
+                      {gender === 'female' ? t.characterRoleDescFemale : t.characterRoleDescMale}
                     </p>
                   </div>
 
+                  {/* Character Gender Selector */}
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-white/10 flex items-center justify-between">
+                    <span className="text-xs font-mono text-slate-300 font-bold">{t.charGenderPrompt}</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setGender('male');
+                          soundEngine.playTypewriterBlip();
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          gender === 'male' ? 'bg-cyan-500 text-slate-950 shadow' : 'bg-slate-900 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        👦 {t.charMale}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setGender('female');
+                          soundEngine.playTypewriterBlip();
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          gender === 'female' ? 'bg-pink-500 text-white shadow' : 'bg-slate-900 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        👧 {t.charFemale}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Character Stats Bars */}
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-3 pt-1">
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-300 font-bold">Arsitektur Web & SaaS (React/TypeScript/Cloudflare)</span>
+                        <span className="text-slate-300 font-bold">{t.statWebSaas}</span>
                         <span className="text-cyan-400">98%</span>
                       </div>
                       <div className="roblox-stat-bar">
@@ -385,7 +528,7 @@ export function App() {
 
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-300 font-bold">AI Workflow & LLM Integration</span>
+                        <span className="text-slate-300 font-bold">{t.statAiWorkflow}</span>
                         <span className="text-purple-400">95%</span>
                       </div>
                       <div className="roblox-stat-bar">
@@ -395,7 +538,7 @@ export function App() {
 
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-300 font-bold">Enterprise Cloud Architecture & Scalability</span>
+                        <span className="text-slate-300 font-bold">{t.statEnterpriseCloud}</span>
                         <span className="text-emerald-400">100%</span>
                       </div>
                       <div className="roblox-stat-bar">
@@ -407,16 +550,16 @@ export function App() {
                   {/* Badge Row */}
                   <div className="pt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <div className="p-2.5 rounded-xl bg-slate-950/70 border border-white/5 space-y-1 text-center">
-                      <div className="text-xs font-mono text-cyan-300 font-bold">10+ Karya Web</div>
-                      <div className="text-[10px] text-slate-400">Beroperasi aktif di Cloudflare & Vercel</div>
+                      <div className="text-xs font-mono text-cyan-300 font-bold">{t.badgeWorksCount}</div>
+                      <div className="text-[10px] text-slate-400">{t.badgeWorksDesc}</div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-950/70 border border-white/5 space-y-1 text-center">
-                      <div className="text-xs font-mono text-emerald-300 font-bold">Anti Kebocoran</div>
-                      <div className="text-[10px] text-slate-400">Proteksi data & unit ekonomi teruji</div>
+                      <div className="text-xs font-mono text-emerald-300 font-bold">{t.badgeSecurity}</div>
+                      <div className="text-[10px] text-slate-400">{t.badgeSecurityDesc}</div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-950/70 border border-white/5 space-y-1 text-center col-span-2 sm:col-span-1">
-                      <div className="text-xs font-mono text-amber-300 font-bold">High Scalability</div>
-                      <div className="text-[10px] text-slate-400">Arsitektur cloud global dengan ketahanan traffic tinggi</div>
+                      <div className="text-xs font-mono text-amber-300 font-bold">{t.badgeScale}</div>
+                      <div className="text-[10px] text-slate-400">{t.badgeScaleDesc}</div>
                     </div>
                   </div>
                 </div>
@@ -428,9 +571,9 @@ export function App() {
                     <div>
                       <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
                         <Boxes className="w-5 h-5 text-amber-400" />
-                        <span>Koleksi Karya Digital & Gedung Kota (10 Karya)</span>
+                        <span>{t.projectsHeading} ({projects.length})</span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-0.5">Semua situs web di bawah ini aktif beroperasi dan dapat dikunjungi langsung</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t.projectsSubheading}</p>
                     </div>
 
                     <button
@@ -438,7 +581,7 @@ export function App() {
                       className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
                     >
                       <Gamepad2 className="w-4 h-4" />
-                      <span>Buka Kota 3D ➔</span>
+                      <span>{t.projectsOpenCity}</span>
                     </button>
                   </div>
 
@@ -450,7 +593,7 @@ export function App() {
                         key={cat.id}
                         onClick={() => {
                           setSelectedCategory(cat.id);
-                          playSfx(500, 'sine');
+                          soundEngine.playTypewriterBlip();
                         }}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                           selectedCategory === cat.id
@@ -480,7 +623,7 @@ export function App() {
                                 border: `1px solid #${p.neonColor.toString(16).padStart(6, '0')}44`
                               }}
                             >
-                              {p.badge}
+                              {(lang === 'en' && p.badgeEn) ? p.badgeEn : p.badge}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono">
                               POS [{p.position[0]}, {p.position[2]}]
@@ -488,8 +631,12 @@ export function App() {
                           </div>
 
                           <h3 className="text-base font-black text-white">{p.name}</h3>
-                          <p className="text-[11px] text-cyan-300 font-mono line-clamp-1">{p.subtitle}</p>
-                          <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{p.desc}</p>
+                          <p className="text-[11px] text-cyan-300 font-mono line-clamp-1">
+                            {(lang === 'en' && p.subtitleEn) ? p.subtitleEn : p.subtitle}
+                          </p>
+                          <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">
+                            {(lang === 'en' && p.descEn) ? p.descEn : p.desc}
+                          </p>
                         </div>
 
                         <div className="flex items-center gap-2 pt-2 border-t border-white/5">
@@ -500,7 +647,7 @@ export function App() {
                             onClick={() => playSfx(750, 'square')}
                             className="flex-1 py-1.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow"
                           >
-                            <span>Buka Live</span>
+                            <span>{lang === 'en' ? 'Open Live' : 'Buka Live'}</span>
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
 
@@ -514,7 +661,7 @@ export function App() {
                             title="Teleport avatar ke depan gedung ini di Kota 3D"
                           >
                             <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Kota 3D</span>
+                            <span>{t.cityMode}</span>
                           </button>
                         </div>
                       </div>
@@ -529,9 +676,9 @@ export function App() {
                     <div>
                       <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
                         <Zap className="w-5 h-5 text-yellow-400" />
-                        <span>Layanan & Solusi yang Saya Tawarkan</span>
+                        <span>{t.servicesHeading}</span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-0.5">Solusi teknologi bernilai tinggi untuk mempercepat pertumbuhan bisnis Anda</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t.servicesSubheading}</p>
                     </div>
                   </div>
 
@@ -563,10 +710,10 @@ export function App() {
 
                   <div>
                     <h2 className="text-2xl font-black text-white tracking-tight">
-                      Mari Kolaborasi & Bangun Bersama!
+                      {t.contactHeading}
                     </h2>
                     <p className="text-xs text-slate-300 max-w-md mx-auto mt-2 leading-relaxed">
-                      Punya ide software, butuh otomatisasi AI cerdas, atau ingin portofolio digital interaktif 3D seperti ini? Pintu server terbuka untuk Anda.
+                      {t.contactSubheading}
                     </p>
                   </div>
 
@@ -579,10 +726,10 @@ export function App() {
                       className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/30 cursor-pointer transition-all hover:scale-105"
                     >
                       <MessageCircle className="w-4 h-4 fill-current" />
-                      <span>Chat WhatsApp: 0812-9517-5618 (Konsultasi Bisnis)</span>
+                      <span>{t.contactWhatsAppCta}</span>
                     </a>
                     <p className="text-[11px] text-slate-400 font-mono">
-                      Fast Response • Al Fargan Orin • Siap Diskusi Arsitektur & Penawaran
+                      {t.contactSubtext}
                     </p>
                   </div>
                 </div>
@@ -616,15 +763,15 @@ export function App() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={handlePrevStage}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
                 >
-                  ◀ Prev
+                  ◀ {lang === 'en' ? 'Prev' : 'Sebelumnya'}
                 </button>
                 <button
                   onClick={handleNextStage}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
                 >
-                  Next ▶
+                  {lang === 'en' ? 'Next' : 'Berikutnya'} ▶
                 </button>
               </div>
             </nav>
@@ -646,20 +793,22 @@ export function App() {
 
               <div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
-                  {selectedBuilding.badge}
+                  {(lang === 'en' && selectedBuilding.badgeEn) ? selectedBuilding.badgeEn : selectedBuilding.badge}
                 </span>
                 <h3 className="text-xl font-black text-white mt-2 tracking-tight">{selectedBuilding.name}</h3>
-                <p className="text-xs text-cyan-300 font-mono mt-0.5">{selectedBuilding.subtitle}</p>
+                <p className="text-xs text-cyan-300 font-mono mt-0.5">
+                  {(lang === 'en' && selectedBuilding.subtitleEn) ? selectedBuilding.subtitleEn : selectedBuilding.subtitle}
+                </p>
               </div>
 
               <p className="text-xs text-slate-300 leading-relaxed">
-                {selectedBuilding.desc}
+                {(lang === 'en' && selectedBuilding.descEn) ? selectedBuilding.descEn : selectedBuilding.desc}
               </p>
 
               <div className="space-y-1.5 p-3.5 rounded-xl bg-slate-950/70 border border-white/10">
-                <div className="text-xs font-bold text-white">Spesifikasi & Kapabilitas:</div>
+                <div className="text-xs font-bold text-white">{t.projectCapabilities}</div>
                 <div className="space-y-1">
-                  {selectedBuilding.features.map((f, i) => (
+                  {((lang === 'en' && selectedBuilding.featuresEn) ? selectedBuilding.featuresEn : selectedBuilding.features).map((f, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs text-slate-300">
                       <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
                       <span>{f}</span>
@@ -673,7 +822,7 @@ export function App() {
                   onClick={() => setSelectedBuilding(null)}
                   className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition-all"
                 >
-                  Kembali ke Kota
+                  {t.backToCityBtn}
                 </button>
 
                 <a
@@ -683,7 +832,7 @@ export function App() {
                   onClick={() => playSfx(880, 'square')}
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-xl shadow-cyan-500/30 cursor-pointer transition-all hover:scale-105"
                 >
-                  <span>Buka Website Live di Tab Baru</span>
+                  <span>{t.launchTabBtn}</span>
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>

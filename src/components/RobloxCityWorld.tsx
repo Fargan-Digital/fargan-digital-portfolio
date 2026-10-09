@@ -16,10 +16,18 @@ import {
   X,
   RotateCcw,
   RotateCw,
-  Navigation
+  Navigation,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
 import { soundEngine } from '../utils/audioManager';
+import { 
+  translations, 
+  type Language, 
+  type DayNightMode, 
+  type CharacterGender 
+} from '../utils/translations';
 
 export { type CityBuilding } from '../data/portfolioProjects';
 
@@ -27,13 +35,26 @@ interface RobloxCityWorldProps {
   onBuildingSelect: (building: CityBuilding) => void;
   targetBuildingId?: string | null;
   projects?: CityBuilding[];
+  lang?: Language;
+  mode?: DayNightMode;
+  gender?: CharacterGender;
+  onToggleLang?: () => void;
+  onToggleMode?: () => void;
+  onToggleGender?: () => void;
 }
 
 export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({ 
   onBuildingSelect,
   targetBuildingId,
-  projects
+  projects,
+  lang = 'id',
+  mode = 'night',
+  gender = 'male',
+  onToggleLang,
+  onToggleMode,
+  onToggleGender
 }) => {
+  const t = translations[lang];
   const currentProjects = projects && projects.length > 0 ? projects : portfolioProjects;
   const currentProjectsRef = useRef(currentProjects);
   currentProjectsRef.current = currentProjects;
@@ -78,13 +99,47 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   // Mobile controller touch states
   const mobileInputRef = useRef({ forward: false, backward: false, left: false, right: false, jump: false });
 
+  // Three.js dynamic refs for Day/Night and Character Gender
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
+  const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
+  const groundMatRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const roadMatRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const maleRigRef = useRef<THREE.Group | null>(null);
+  const femaleRigRef = useRef<THREE.Group | null>(null);
+  const orbMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
+
+  // Update Day / Night Mode dynamically without remounting Three.js scene
+  useEffect(() => {
+    if (!sceneRef.current || !dirLightRef.current || !ambientLightRef.current || !groundMatRef.current || !roadMatRef.current) return;
+    const isDay = mode === 'day';
+    sceneRef.current.background = new THREE.Color(isDay ? 0x38bdf8 : 0x060911);
+    sceneRef.current.fog = new THREE.FogExp2(isDay ? 0xbae6fd : 0x060911, isDay ? 0.012 : 0.015);
+    dirLightRef.current.color.setHex(isDay ? 0xfff7ed : 0x38bdf8);
+    dirLightRef.current.intensity = isDay ? 3.2 : 2.2;
+    ambientLightRef.current.intensity = isDay ? 2.4 : 1.3;
+    groundMatRef.current.color.setHex(isDay ? 0x334155 : 0x090D16);
+    roadMatRef.current.color.setHex(isDay ? 0x1e293b : 0x0e1422);
+  }, [mode]);
+
+  // Update Male / Female Rig visibility dynamically without resetting position
+  useEffect(() => {
+    if (maleRigRef.current && femaleRigRef.current) {
+      maleRigRef.current.visible = gender === 'male';
+      femaleRigRef.current.visible = gender === 'female';
+    }
+    if (orbMatRef.current) {
+      orbMatRef.current.color.setHex(gender === 'female' ? 0xEC4899 : 0x00E5FF);
+    }
+  }, [gender]);
+
   // Web Audio Typewriter Click SFX
   const playTypewriterClick = useCallback(() => {
     if (!dialogueSfxEnabled) return;
     soundEngine.playTypewriterBlip();
   }, [dialogueSfxEnabled]);
 
-  // Handle Typewriter Text Animation
+  // Handle Typewriter Text Animation with Bilingual Support
   useEffect(() => {
     if (!activeDialogue) {
       setDisplayedText('');
@@ -92,7 +147,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       return;
     }
 
-    const fullText = activeDialogue.dialogueText;
+    const fullText = (lang === 'en' && activeDialogue.dialogueTextEn) 
+      ? activeDialogue.dialogueTextEn 
+      : activeDialogue.dialogueText;
     let charIndex = 0;
     setDisplayedText('');
     setIsTypingDone(false);
@@ -112,7 +169,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     }, 22);
 
     return () => clearInterval(timer);
-  }, [activeDialogue, playTypewriterClick]);
+  }, [activeDialogue, lang, playTypewriterClick]);
 
   // Handle external teleport if targetBuildingId provided
   useEffect(() => {
@@ -139,9 +196,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     const isMobile = checkIsMobile();
 
     // 1. Three.js Scene, Camera, Renderer
+    const isDay = mode === 'day';
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060911);
-    scene.fog = new THREE.FogExp2(0x060911, 0.015);
+    scene.background = new THREE.Color(isDay ? 0x38bdf8 : 0x060911);
+    scene.fog = new THREE.FogExp2(isDay ? 0xbae6fd : 0x060911, isDay ? 0.012 : 0.015);
+    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
       isMobile ? 65 : 52,
@@ -158,29 +217,33 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     container.appendChild(renderer.domElement);
 
     // 2. City Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 1.3);
+    const ambient = new THREE.AmbientLight(0xffffff, isDay ? 2.4 : 1.3);
     scene.add(ambient);
+    ambientLightRef.current = ambient;
 
-    const dirLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
+    const dirLight = new THREE.DirectionalLight(isDay ? 0xfff7ed : 0x38bdf8, isDay ? 3.2 : 2.2);
     dirLight.position.set(25, 50, 25);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
+    dirLightRef.current = dirLight;
 
     // 3. Ground & Cyber Road System
     const groundGeo = new THREE.PlaneGeometry(120, 120);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x090D16, roughness: 0.85 });
+    const groundMat = new THREE.MeshStandardMaterial({ color: isDay ? 0x334155 : 0x090D16, roughness: 0.85 });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
+    groundMatRef.current = groundMat;
 
     const grid = new THREE.GridHelper(120, 60, 0x00A2FF, 0x142236);
     grid.position.y = 0.02;
     scene.add(grid);
 
-    const roadMat = new THREE.MeshStandardMaterial({ color: 0x0e1422, roughness: 0.7 });
+    const roadMat = new THREE.MeshStandardMaterial({ color: isDay ? 0x1e293b : 0x0e1422, roughness: 0.7 });
+    roadMatRef.current = roadMat;
 
     const createRoad = (width: number, length: number, x: number, z: number, rotate = false) => {
       const road = new THREE.Mesh(new THREE.PlaneGeometry(width, length), roadMat);
@@ -627,6 +690,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     // 6. Playable Roblox Player Character Rig
     const playerGroup = new THREE.Group();
 
+    // ==========================================
+    // MALE RIG
+    // ==========================================
+    const maleRig = new THREE.Group();
+
     const skinMat = new THREE.MeshStandardMaterial({ color: 0xFAD090, roughness: 0.5 });
     const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x111625, roughness: 0.4 });
     const cyanNeonMat = new THREE.MeshStandardMaterial({ color: 0x00E5FF, emissive: 0x00A2FF, emissiveIntensity: 0.6 });
@@ -661,60 +729,188 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     const head = new THREE.Mesh(headGeo, headMatArray);
     head.position.y = 1.65;
     head.castShadow = true;
-    playerGroup.add(head);
+    maleRig.add(head);
 
     // Headphones
     const bandGeo = new THREE.BoxGeometry(0.82, 0.08, 0.2);
     const band = new THREE.Mesh(bandGeo, cyanNeonMat);
     band.position.set(0, 2.05, 0);
-    playerGroup.add(band);
+    maleRig.add(band);
 
     const earGeo = new THREE.BoxGeometry(0.12, 0.28, 0.28);
     const earL = new THREE.Mesh(earGeo, cyanNeonMat);
     earL.position.set(-0.41, 1.65, 0);
     const earR = new THREE.Mesh(earGeo, cyanNeonMat);
     earR.position.set(0.41, 1.65, 0);
-    playerGroup.add(earL, earR);
+    maleRig.add(earL, earR);
 
     // Torso
     const torsoGeo = new THREE.BoxGeometry(1.0, 1.1, 0.55);
     const torso = new THREE.Mesh(torsoGeo, hoodieMat);
     torso.position.y = 0.85;
     torso.castShadow = true;
-    playerGroup.add(torso);
+    maleRig.add(torso);
 
     const logoGeo = new THREE.BoxGeometry(0.35, 0.35, 0.05);
     const logoMesh = new THREE.Mesh(logoGeo, cyanNeonMat);
     logoMesh.position.set(0, 0.95, 0.29);
-    playerGroup.add(logoMesh);
+    maleRig.add(logoMesh);
 
     // Arms
     const armGeo = new THREE.BoxGeometry(0.38, 1.0, 0.45);
     const leftArm = new THREE.Mesh(armGeo, hoodieMat);
     leftArm.position.set(-0.72, 0.85, 0);
     leftArm.castShadow = true;
-    playerGroup.add(leftArm);
+    maleRig.add(leftArm);
 
     const rightArm = new THREE.Mesh(armGeo, hoodieMat);
     rightArm.position.set(0.72, 0.85, 0);
     rightArm.castShadow = true;
-    playerGroup.add(rightArm);
+    maleRig.add(rightArm);
 
     // Legs
     const legGeo = new THREE.BoxGeometry(0.44, 0.9, 0.45);
     const leftLeg = new THREE.Mesh(legGeo, pantsMat);
     leftLeg.position.set(-0.24, -0.05, 0);
     leftLeg.castShadow = true;
-    playerGroup.add(leftLeg);
+    maleRig.add(leftLeg);
 
     const rightLeg = new THREE.Mesh(legGeo, pantsMat);
     rightLeg.position.set(0.24, -0.05, 0);
     rightLeg.castShadow = true;
-    playerGroup.add(rightLeg);
+    maleRig.add(rightLeg);
+
+    maleRig.visible = gender === 'male';
+    maleRigRef.current = maleRig;
+    playerGroup.add(maleRig);
+
+    // ==========================================
+    // FEMALE RIG
+    // ==========================================
+    const femaleRig = new THREE.Group();
+
+    const fSkinMat = new THREE.MeshStandardMaterial({ color: 0xFDE2CA, roughness: 0.5 });
+    const fTechMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.4 });
+    const fPinkNeonMat = new THREE.MeshStandardMaterial({ color: 0xEC4899, emissive: 0xDB2777, emissiveIntensity: 0.6 });
+    const fHairMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.3 });
+    const fPantsMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
+
+    const fFaceCanvas = document.createElement('canvas');
+    fFaceCanvas.width = 128;
+    fFaceCanvas.height = 128;
+    const ffctx = fFaceCanvas.getContext('2d');
+    if (ffctx) {
+      ffctx.fillStyle = '#FDE2CA';
+      ffctx.fillRect(0, 0, 128, 128);
+      // Anime Eyes with stylish lashes
+      ffctx.fillStyle = '#1e1b4b';
+      ffctx.fillRect(26, 42, 20, 24);
+      ffctx.fillRect(82, 42, 20, 24);
+      // Lashes
+      ffctx.fillStyle = '#0f172a';
+      ffctx.fillRect(22, 38, 26, 5);
+      ffctx.fillRect(80, 38, 26, 5);
+      // Sparkling eyes
+      ffctx.fillStyle = '#f43f5e';
+      ffctx.fillRect(32, 46, 8, 10);
+      ffctx.fillRect(88, 46, 8, 10);
+      ffctx.fillStyle = '#ffffff';
+      ffctx.fillRect(36, 48, 4, 4);
+      ffctx.fillRect(92, 48, 4, 4);
+      // Blush
+      ffctx.fillStyle = '#fda4af';
+      ffctx.fillRect(20, 70, 14, 6);
+      ffctx.fillRect(94, 70, 14, 6);
+      // Smile
+      ffctx.fillStyle = '#be123c';
+      ffctx.beginPath();
+      ffctx.arc(64, 86, 12, 0.1 * Math.PI, 0.9 * Math.PI);
+      ffctx.lineWidth = 4;
+      ffctx.stroke();
+    }
+    const fFaceTexture = new THREE.CanvasTexture(fFaceCanvas);
+    const fHeadMatArray = [
+      fSkinMat, fSkinMat, fSkinMat, fSkinMat,
+      new THREE.MeshStandardMaterial({ map: fFaceTexture }),
+      fSkinMat
+    ];
+
+    const fHeadGeo = new THREE.BoxGeometry(0.68, 0.68, 0.68);
+    const fHead = new THREE.Mesh(fHeadGeo, fHeadMatArray);
+    fHead.position.y = 1.65;
+    fHead.castShadow = true;
+    femaleRig.add(fHead);
+
+    // Female Hair Top
+    const fHairTop = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.22, 0.74), fHairMat);
+    fHairTop.position.set(0, 2.02, 0);
+    femaleRig.add(fHairTop);
+
+    // Cyber Ponytail
+    const fPonytail = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.68, 0.28), fHairMat);
+    fPonytail.position.set(0, 1.85, -0.42);
+    fPonytail.rotation.x = -0.3;
+    femaleRig.add(fPonytail);
+
+    // Glowing Cyber Hair Ribbon
+    const fRibbon = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.2), fPinkNeonMat);
+    fRibbon.position.set(0, 2.06, -0.32);
+    femaleRig.add(fRibbon);
+
+    // Cat-ear cyber antennae
+    const fEarL = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.28, 4), fPinkNeonMat);
+    fEarL.position.set(-0.35, 2.18, 0);
+    fEarL.rotation.z = 0.2;
+    const fEarR = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.28, 4), fPinkNeonMat);
+    fEarR.position.set(0.35, 2.18, 0);
+    fEarR.rotation.z = -0.2;
+    femaleRig.add(fEarL, fEarR);
+
+    // Female Torso (Techwear Crop-Jacket)
+    const fTorso = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.05, 0.52), fTechMat);
+    fTorso.position.y = 0.85;
+    fTorso.castShadow = true;
+    femaleRig.add(fTorso);
+
+    const fStripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.6, 0.05), fPinkNeonMat);
+    fStripe.position.set(0, 0.9, 0.28);
+    femaleRig.add(fStripe);
+
+    // Female Arms
+    const fArmGeo = new THREE.BoxGeometry(0.35, 0.95, 0.4);
+    const leftArmFemale = new THREE.Mesh(fArmGeo, fTechMat);
+    leftArmFemale.position.set(-0.68, 0.85, 0);
+    leftArmFemale.castShadow = true;
+    femaleRig.add(leftArmFemale);
+
+    const rightArmFemale = new THREE.Mesh(fArmGeo, fTechMat);
+    rightArmFemale.position.set(0.68, 0.85, 0);
+    rightArmFemale.castShadow = true;
+    femaleRig.add(rightArmFemale);
+
+    // Female Legs
+    const fLegGeo = new THREE.BoxGeometry(0.4, 0.88, 0.42);
+    const leftLegFemale = new THREE.Mesh(fLegGeo, fPantsMat);
+    leftLegFemale.position.set(-0.23, -0.05, 0);
+    leftLegFemale.castShadow = true;
+    femaleRig.add(leftLegFemale);
+
+    const rightLegFemale = new THREE.Mesh(fLegGeo, fPantsMat);
+    rightLegFemale.position.set(0.23, -0.05, 0);
+    rightLegFemale.castShadow = true;
+    femaleRig.add(rightLegFemale);
+
+    femaleRig.visible = gender === 'female';
+    femaleRigRef.current = femaleRig;
+    playerGroup.add(femaleRig);
 
     // Floating AI Orb
     const orbGeo = new THREE.IcosahedronGeometry(0.18, 1);
-    const orbMat = new THREE.MeshBasicMaterial({ color: 0x00E5FF, wireframe: true });
+    const orbMat = new THREE.MeshBasicMaterial({ 
+      color: gender === 'female' ? 0xEC4899 : 0x00E5FF, 
+      wireframe: true 
+    });
+    orbMatRef.current = orbMat;
     const orb = new THREE.Mesh(orbGeo, orbMat);
     orb.position.set(0.9, 1.9, -0.4);
     playerGroup.add(orb);
@@ -937,10 +1133,18 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         playerGroup.rotation.y = targetAngle;
 
         walkCycle += delta * 15;
-        leftLeg.rotation.x = Math.sin(walkCycle) * 0.7;
-        rightLeg.rotation.x = -Math.sin(walkCycle) * 0.7;
-        leftArm.rotation.x = -Math.sin(walkCycle) * 0.7;
-        rightArm.rotation.x = Math.sin(walkCycle) * 0.7;
+        const legRot = Math.sin(walkCycle) * 0.7;
+        const armRot = -Math.sin(walkCycle) * 0.7;
+
+        leftLeg.rotation.x = legRot;
+        rightLeg.rotation.x = -legRot;
+        leftArm.rotation.x = armRot;
+        rightArm.rotation.x = -armRot;
+
+        leftLegFemale.rotation.x = legRot;
+        rightLegFemale.rotation.x = -legRot;
+        leftArmFemale.rotation.x = armRot;
+        rightArmFemale.rotation.x = -armRot;
 
         // Footstep sound cadence
         stepTimer += delta;
@@ -953,8 +1157,14 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         walkCycle = 0;
         leftLeg.rotation.x *= 0.8;
         rightLeg.rotation.x *= 0.8;
-        leftArm.rotation.x = Math.sin(elapsedTime * 2) * 0.08;
-        rightArm.rotation.x = -Math.sin(elapsedTime * 2) * 0.08;
+        leftLegFemale.rotation.x *= 0.8;
+        rightLegFemale.rotation.x *= 0.8;
+
+        const idleArm = Math.sin(elapsedTime * 2) * 0.08;
+        leftArm.rotation.x = idleArm;
+        rightArm.rotation.x = -idleArm;
+        leftArmFemale.rotation.x = idleArm;
+        rightArmFemale.rotation.x = -idleArm;
       }
 
       // Jump
@@ -1197,7 +1407,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           <div className="flex items-center justify-between text-xs font-mono text-cyan-300 font-bold border-b border-white/10 pb-2">
             <div className="flex items-center gap-1.5">
               <Compass className="w-4 h-4 text-cyan-400" />
-              <span>RADAR KOTA (10 KARYA)</span>
+              <span>{t.radarTitle} ({currentProjects.length})</span>
             </div>
             <button
               onClick={() => setMobileRadarOpen(false)}
@@ -1279,7 +1489,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       <div className="absolute top-16 right-4 z-30 hidden sm:block">
         <div className="bg-slate-950/80 backdrop-blur-md rounded-2xl p-3 border border-white/10 shadow-xl max-h-72 overflow-y-auto w-52 space-y-1 text-xs">
           <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-1 pb-1 border-b border-white/10 flex items-center justify-between">
-            <span>Daftar Gedung Karya</span>
+            <span>{t.buildingDirectory}</span>
             <MapPin className="w-3 h-3 text-cyan-400" />
           </div>
           {currentProjects.map(b => (
@@ -1342,10 +1552,12 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                         border: `1px solid #${activeDialogue.neonColor.toString(16).padStart(6, '0')}55`
                       }}
                     >
-                      {activeDialogue.badge}
+                      {(lang === 'en' && activeDialogue.badgeEn) ? activeDialogue.badgeEn : activeDialogue.badge}
                     </span>
                   </div>
-                  <p className="text-[10px] sm:text-[11px] text-cyan-300 font-mono mt-0.5">{activeDialogue.npcRole}</p>
+                  <p className="text-[10px] sm:text-[11px] text-cyan-300 font-mono mt-0.5">
+                    {(lang === 'en' && activeDialogue.npcRoleEn) ? activeDialogue.npcRoleEn : activeDialogue.npcRole}
+                  </p>
                 </div>
               </div>
 
@@ -1375,7 +1587,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
             <div 
               onClick={() => {
                 // Click bubble to instantly reveal full text
-                setDisplayedText(activeDialogue.dialogueText);
+                const fullText = (lang === 'en' && activeDialogue.dialogueTextEn) 
+                  ? activeDialogue.dialogueTextEn 
+                  : activeDialogue.dialogueText;
+                setDisplayedText(fullText);
                 setIsTypingDone(true);
               }}
               className="p-3.5 rounded-2xl bg-slate-900/90 border border-white/5 cursor-pointer relative min-h-[64px]"
@@ -1394,7 +1609,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                 onClick={() => onBuildingSelect(activeDialogue)}
                 className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition-all active:scale-95"
               >
-                📋 Spesifikasi Gedung
+                {lang === 'en' ? '📋 Building Specs' : '📋 Spesifikasi Gedung'}
               </button>
 
               <a
@@ -1406,7 +1621,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                   background: `linear-gradient(135deg, #${activeDialogue.neonColor.toString(16).padStart(6, '0')}, #38bdf8)`
                 }}
               >
-                <span>BUKA WEBSITE LIVE ➔</span>
+                <span>{lang === 'en' ? 'OPEN LIVE SITE ➔' : 'BUKA WEBSITE LIVE ➔'}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
 
@@ -1417,7 +1632,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                 }}
                 className="px-3 py-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white font-bold text-xs cursor-pointer"
               >
-                Permisi ✕
+                {lang === 'en' ? 'Close ✕' : 'Permisi ✕'}
               </button>
             </div>
           </div>
@@ -1432,7 +1647,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           <div className="bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-cyan-500/30 shadow-xl flex items-center gap-2 text-[11px] text-slate-300">
             <Sparkles className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 animate-pulse" />
             <span className="truncate">
-              Geser layar untuk putar sudut 360° • Cubit layar untuk zoom (seperti Google Maps)
+              {lang === 'en' 
+                ? 'Drag screen to orbit 360° • Pinch screen to zoom (Google Maps style)' 
+                : 'Geser layar untuk putar sudut 360° • Cubit layar untuk zoom (seperti Google Maps)'}
             </span>
             <button 
               onClick={() => setControlsHintVisible(false)}
@@ -1445,9 +1662,43 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* COMPACT CAMERA ROTATE & COMPASS HELPER (TOP-RIGHT) */}
+      {/* COMPACT CAMERA ROTATE & COMPASS HELPER + QUICK TOGGLES (TOP-RIGHT) */}
       {/* ========================================================= */}
-      <div className="absolute top-14 right-3 sm:top-16 sm:right-60 z-30 pointer-events-auto flex items-center gap-1 bg-slate-950/85 backdrop-blur-md px-2 py-1.5 rounded-full border border-cyan-500/30 shadow-xl">
+      <div className="absolute top-14 right-3 sm:top-16 sm:right-60 z-30 pointer-events-auto flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-cyan-500/30 shadow-xl">
+        {onToggleMode && (
+          <button
+            onClick={onToggleMode}
+            className="p-1.5 rounded-full bg-slate-900/90 text-slate-300 hover:text-white transition-colors cursor-pointer shadow border border-white/5 active:scale-95"
+            title={mode === 'day' ? `${t.nightMode}` : `${t.dayMode}`}
+          >
+            {mode === 'day' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-cyan-400" />}
+          </button>
+        )}
+
+        {onToggleGender && (
+          <button
+            onClick={onToggleGender}
+            className="px-2 py-1 rounded-full bg-slate-900/90 text-slate-300 hover:text-white transition-colors cursor-pointer text-[10px] font-bold border border-white/5 flex items-center gap-0.5 active:scale-95"
+            title="Ganti Model Karakter"
+          >
+            <span>{gender === 'female' ? '👧' : '👦'}</span>
+            <span className="hidden md:inline text-[9px] font-mono">{gender === 'female' ? t.charFemale : t.charMale}</span>
+          </button>
+        )}
+
+        {onToggleLang && (
+          <button
+            onClick={onToggleLang}
+            className="px-2 py-1 rounded-full bg-slate-900/90 text-slate-300 hover:text-white transition-colors cursor-pointer text-[10px] font-bold border border-white/5 flex items-center gap-0.5 active:scale-95"
+            title="Ganti Bahasa / Toggle Language"
+          >
+            <span>{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
+            <span className="text-[9px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
+          </button>
+        )}
+
+        <div className="w-px h-4 bg-white/20 mx-0.5" />
+
         <button
           onClick={() => rotateCameraRef.current?.(-Math.PI / 4)}
           className="p-1.5 rounded-full bg-slate-900/90 text-slate-300 hover:text-white active:bg-cyan-500 active:text-slate-950 transition-colors active:scale-95 cursor-pointer shadow"
@@ -1461,7 +1712,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           title="Reset Sudut Pandang (Arah Utara)"
         >
           <Navigation className="w-3 h-3 text-cyan-400" />
-          <span>Utara</span>
+          <span>{t.compassNorth}</span>
         </button>
         <button
           onClick={() => rotateCameraRef.current?.(Math.PI / 4)}
@@ -1547,10 +1798,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           onMouseUp={() => { mobileInputRef.current.jump = false; }}
           onMouseLeave={() => { mobileInputRef.current.jump = false; }}
           className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-500 text-slate-950 font-black text-[11px] shadow-[0_8px_25px_rgba(0,229,255,0.4)] flex flex-col items-center justify-center gap-0.5 border-2 border-white/40 active:scale-90 transition-transform touch-none cursor-pointer"
-          aria-label="Lompat"
+          aria-label={t.jumpBtn}
         >
           <Footprints className="w-4 h-4" />
-          <span>JUMP</span>
+          <span>{t.jumpBtn.toUpperCase()}</span>
         </button>
       </div>
     </div>
