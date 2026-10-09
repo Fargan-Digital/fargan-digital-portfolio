@@ -78,7 +78,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Enterprise SaaS • Production Ready',
     categoryEn: 'Enterprise SaaS • Production Ready',
     categoryGroup: 'enterprise',
-    position: [-32, 5, -24],
+    position: [-31, 5, -23],
     color: 0x0F1B29,
     neonColor: 0x00A2FF, // Electric Cyan
     height: 10,
@@ -115,7 +115,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'AI Cyber Security & Fraud Prevention',
     categoryEn: 'AI Cyber Security & Fraud Prevention',
     categoryGroup: 'fintech_security',
-    position: [-32, 4.5, -6],
+    position: [-31, 4.5, -1],
     color: 0x220A16,
     neonColor: 0xFF0055, // Alert Magenta Red
     height: 9,
@@ -150,7 +150,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'FinTech & Trading Intelligence',
     categoryEn: 'FinTech & Trading Intelligence',
     categoryGroup: 'fintech_security',
-    position: [32, 4.5, -24],
+    position: [31, 4.5, -23],
     color: 0x06150E,
     neonColor: 0x00FF66, // Matrix Green
     height: 9,
@@ -185,7 +185,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Corporate Enterprise B2B',
     categoryEn: 'Corporate Enterprise B2B',
     categoryGroup: 'corporate_b2b',
-    position: [-32, 4, 10],
+    position: [-31, 4, 23],
     color: 0x0B231B,
     neonColor: 0x10B981, // Emerald Green
     height: 8,
@@ -220,7 +220,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Industrial Oil & Drilling Logistics',
     categoryEn: 'Industrial Oil & Drilling Logistics',
     categoryGroup: 'corporate_b2b',
-    position: [-32, 4, 26],
+    position: [-11, 4, -23],
     color: 0x15220A,
     neonColor: 0x84CC16, // Industrial Lime
     height: 8,
@@ -255,7 +255,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Real Estate & Property Landing Page',
     categoryEn: 'Real Estate & Property Landing Page',
     categoryGroup: 'property_agency',
-    position: [32, 4, -6],
+    position: [31, 4, -1],
     color: 0x241A0B,
     neonColor: 0xF59E0B, // Amber Gold
     height: 8,
@@ -290,7 +290,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Digital Agency & Conversion Growth',
     categoryEn: 'Digital Agency & Conversion Growth',
     categoryGroup: 'property_agency',
-    position: [32, 4, 10],
+    position: [31, 4, 23],
     color: 0x1A0D2E,
     neonColor: 0xA855F7, // Electric Purple
     height: 8,
@@ -325,7 +325,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Fashion & Luxury E-Commerce',
     categoryEn: 'Fashion & Luxury E-Commerce',
     categoryGroup: 'consumer_lifestyle',
-    position: [32, 3.5, 26],
+    position: [11, 3.5, -23],
     color: 0x280D1C,
     neonColor: 0xEC4899, // Hot Pink Rose
     height: 7,
@@ -360,7 +360,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'F&B Brand & Quick Commerce',
     categoryEn: 'F&B Brand & Quick Commerce',
     categoryGroup: 'consumer_lifestyle',
-    position: [-10, 3.5, 34],
+    position: [-11, 3.5, 23],
     color: 0x251408,
     neonColor: 0xD97706, // Caramel Amber
     height: 7,
@@ -395,7 +395,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Personal Branding & Health Fitness',
     categoryEn: 'Personal Branding & Health Fitness',
     categoryGroup: 'consumer_lifestyle',
-    position: [10, 3.5, 34],
+    position: [11, 3.5, 23],
     color: 0x211208,
     neonColor: 0xEA580C, // Hyper Orange
     height: 7,

@@ -409,7 +409,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       const isNorthTower = b.id === 'fargan-tower';
       const isWestSide = b.position[0] <= -20;
       const isEastSide = b.position[0] >= 20;
-      const isSouthSide = b.position[2] >= 28;
+      const isInnerNorth = b.position[2] <= -15 && Math.abs(b.position[0]) < 20;
+      const isInnerSouth = b.position[2] >= 15 && Math.abs(b.position[0]) < 20;
 
       let padOffsetX = 0;
       let padOffsetZ = 0;
@@ -425,28 +426,35 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         npcOffsetZ = b.depth / 2 + 2.5;
         npcRotationY = 0; // NPC faces South toward approaching player
       } else if (isWestSide) {
-        // West boulevard buildings face East toward Central Boulevard / West Avenue
+        // West avenue buildings face East toward avenue
         signMesh.rotation.y = Math.PI / 2;
         padOffsetX = b.width / 2 + 1.5;
         npcOffsetX = b.width / 2 + 2.3;
         npcOffsetZ = 0;
         npcRotationY = Math.PI / 2; // NPC stands in front, facing East
       } else if (isEastSide) {
-        // East boulevard buildings face West toward Central Boulevard / East Avenue
+        // East avenue buildings face West toward avenue
         signMesh.rotation.y = -Math.PI / 2;
         padOffsetX = -b.width / 2 - 1.5;
         npcOffsetX = -b.width / 2 - 2.3;
         npcOffsetZ = 0;
         npcRotationY = -Math.PI / 2; // NPC stands in front, facing West
-      } else if (isSouthSide) {
-        // South buildings (fargan-kopi, hendar-fitness) face North toward Central Plaza
+      } else if (isInnerNorth) {
+        // han-waste & fargan-butik face South toward North Crossroad (z = -12)
+        signMesh.rotation.y = 0;
+        padOffsetZ = b.depth / 2 + 1.5;
+        npcOffsetX = 0;
+        npcOffsetZ = b.depth / 2 + 2.3;
+        npcRotationY = 0; // NPC stands in front, facing South
+      } else if (isInnerSouth) {
+        // fargan-kopi & hendar-fitness face North toward South Crossroad (z = 14)
         signMesh.rotation.y = Math.PI;
         padOffsetZ = -b.depth / 2 - 1.5;
         npcOffsetX = 0;
         npcOffsetZ = -b.depth / 2 - 2.3;
         npcRotationY = Math.PI; // NPC stands in front, facing North
       } else {
-        // Default North-facing buildings
+        // Default North-facing
         signMesh.rotation.y = 0;
         padOffsetZ = b.depth / 2 + 1.5;
         npcOffsetX = 0;
@@ -1668,9 +1676,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       {/* RPG TYPEWRITER DIALOGUE BOX WITH CS NPC AVATAR */}
       {/* ========================================================= */}
       {activeDialogue && (
-        <div className="absolute bottom-40 sm:bottom-8 left-1/2 -translate-x-1/2 z-40 w-[94vw] sm:w-[620px] max-w-full pointer-events-auto animate-fade-in">
+        <div className="absolute bottom-32 sm:bottom-8 left-1/2 -translate-x-1/2 z-40 w-[94vw] sm:w-[620px] max-w-full pointer-events-auto animate-fade-in max-h-[76vh] flex flex-col">
           <div 
-            className="roblox-panel p-4 sm:p-5 border-2 shadow-2xl bg-slate-950/95 backdrop-blur-xl rounded-3xl space-y-3"
+            className="roblox-panel p-3.5 sm:p-5 border-2 shadow-2xl bg-slate-950/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl space-y-2.5 sm:space-y-3 overflow-y-auto"
             style={{ borderColor: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}` }}
           >
             {/* NPC Header & Nametag */}
@@ -1788,7 +1796,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
 
               {activeDialogue.id === 'fargan-tower' ? (
                 <a
-                  href="https://wa.me/6281295175618?text=Halo%20CEO%20Al%20Fargan,%20saya%20tertarik%20berkonsultasi%20mengenai%20pembuatan%20website%20premium%20/%20fitur%20smart%20untuk%20bisnis%20saya..."
+                  href="https://wa.me/6281295175618?text=Halo%20CEO%20Fargan,%20saya%20tertarik%20berkonsultasi%20mengenai%20pembuatan%20website%20premium%20/%20fitur%20smart%20untuk%20bisnis%20saya..."
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => soundEngine.playJump()}

@@ -36,13 +36,25 @@ export class ProjectStorageService {
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
-          // Guarantee fargan-tower always exists
-          let loaded = data.projects;
-          if (!loaded.some((p: any) => p.id === 'fargan-tower')) {
-            const tower = portfolioProjects.find(p => p.id === 'fargan-tower');
-            if (tower) loaded = [tower, ...loaded];
-          }
-          this.memoryProjects = loaded;
+          // Merge KV project data with master grid layout from portfolioProjects
+          // This guarantees buildings always stay in their engineered non-overlapping lots
+          const merged: CityBuilding[] = portfolioProjects.map(master => {
+            const remote = data.projects.find((p: any) => p.id === master.id);
+            if (!remote) return master;
+            return {
+              ...master,
+              ...remote,
+              // Always lock 3D spatial layout & size from master urban grid
+              position: master.position,
+              width: master.width,
+              height: master.height,
+              depth: master.depth,
+              color: master.color,
+              neonColor: master.neonColor,
+            };
+          });
+
+          this.memoryProjects = merged;
           this.saveToLocalCache(this.memoryProjects);
           return this.memoryProjects;
         }
