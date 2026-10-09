@@ -91,12 +91,12 @@ export function App() {
   const totalStages = 5;
   const stageNames = [t.stageLobby, t.stageCharacter, t.stageProjects, t.stageServices, t.stageContact];
 
-  // Check URL route for secret portal /Alfarghan
+  // Check URL route for admin portal /fargan-admin
   useEffect(() => {
     const handleUrlRoute = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      if (path === '/alfarghan' || path === '/alfarghan/' || hash === '#alfarghan') {
+      if (path === '/fargan-admin' || path === '/fargan-admin/' || path === '/portal' || path === '/portal/' || path === '/alfarghan' || path === '/alfarghan/' || hash === '#fargan-admin' || hash === '#portal' || hash === '#alfarghan') {
         setViewMode('alfarghan');
       }
     };
@@ -105,12 +105,12 @@ export function App() {
     return () => window.removeEventListener('popstate', handleUrlRoute);
   }, []);
 
-  // Secret keyboard shortcut (Alt + A) to toggle /Alfarghan portal
+  // Secret keyboard shortcut (Alt + A) to toggle /fargan-admin portal
   useEffect(() => {
     const handleGlobalShortcuts = (e: KeyboardEvent) => {
       if (e.altKey && (e.key === 'a' || e.key === 'A')) {
         e.preventDefault();
-        window.history.pushState({}, '', '/Alfarghan');
+        window.history.pushState({}, '', '/fargan-admin');
         setViewMode('alfarghan');
       }
     };

@@ -145,7 +145,7 @@ export class ProjectStorageService {
   }
 
   getAuthUser(): string | null {
-    return localStorage.getItem(USER_KEY) || 'Alfarghan';
+    return localStorage.getItem(USER_KEY) || 'Fargan';
   }
 
   setSession(token: string, username: string) {
@@ -180,17 +180,7 @@ export class ProjectStorageService {
         return { success: false, error: data.error || 'Username atau password tidak sesuai.' };
       }
     } catch {
-      // Local fallback for dev/offline testing
-      const defaultUser = 'Alfarghan';
-      const defaultPass = 'FarganAI#2026!Secure';
-      if (
-        (username.trim().toLowerCase() === defaultUser.toLowerCase() || username.trim().toLowerCase() === 'alfargan') &&
-        password === defaultPass
-      ) {
-        this.setSession('local_session_token_' + Date.now(), 'Alfarghan');
-        return { success: true, message: 'Autentikasi Berhasil (Mode Lokal).' };
-      }
-      return { success: false, error: 'Username atau password salah!' };
+      return { success: false, error: 'Koneksi ke server autentikasi gagal. Silakan periksa koneksi internet Anda.' };
     }
   }
 

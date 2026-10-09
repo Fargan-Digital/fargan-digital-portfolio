@@ -12,21 +12,45 @@ async function hashPassword(password: string, salt = 'fargan_secure_salt_2026'):
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Helper for security headers & CORS restricted to alfargan.com
+function getCorsHeaders(request: Request) {
+  const origin = request.headers.get('Origin') || '';
+  const allowed = origin === 'https://alfargan.com' || origin.endsWith('.fargan-digital.pages.dev') || origin.startsWith('http://localhost:');
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowed ? origin : 'https://alfargan.com',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'X-Content-Type-Options': 'nosniff',
+  };
+}
+
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
+  const corsHeaders = getCorsHeaders(context.request);
+
   try {
     const body = (await context.request.json()) as any;
     const { action, username, password, oldPassword, newPassword } = body;
 
-    // Default master credentials
-    const defaultUsername = 'Alfarghan';
-    const defaultPasswordHash = await hashPassword('FarganAI#2026!Secure');
-
-    let storedUser = defaultUsername;
-    let storedHash = defaultPasswordHash;
+    let storedUser = 'Fargan';
+    let storedHash = '';
 
     if (context.env && context.env.FARGAN_KV) {
-      storedUser = (await context.env.FARGAN_KV.get('admin_username')) || defaultUsername;
-      storedHash = (await context.env.FARGAN_KV.get('admin_password_hash')) || defaultPasswordHash;
+      storedUser = (await context.env.FARGAN_KV.get('admin_username')) || 'Fargan';
+      storedHash = (await context.env.FARGAN_KV.get('admin_password_hash')) || '';
+    }
+
+    if (!storedHash) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Sistem keamanan belum dikonfigurasi di Cloudflare KV.',
+        }),
+        {
+          status: 503,
+          headers: corsHeaders,
+        }
+      );
     }
 
     if (action === 'login') {
@@ -46,7 +70,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           }),
           {
             status: 429,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            headers: corsHeaders,
           }
         );
       }
@@ -69,7 +93,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           }),
           {
             status: 401,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            headers: corsHeaders,
           }
         );
       }
@@ -106,7 +130,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           message: 'Autentikasi Berhasil! Selamat datang di Ruang Kendali Fargan Digital.',
         }),
         {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: corsHeaders,
         }
       );
     }
@@ -116,22 +140,33 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return new Response(JSON.stringify({ success: false, error: 'Akses ditolak.' }), {
           status: 401,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: corsHeaders,
         });
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      if (context.env && context.env.FARGAN_KV) {
+        const validSession = await context.env.FARGAN_KV.get(`session_${token}`);
+        if (!validSession) {
+          return new Response(JSON.stringify({ success: false, error: 'Sesi kedaluwarsa. Silakan login kembali.' }), {
+            status: 403,
+            headers: corsHeaders,
+          });
+        }
       }
 
       const oldHash = await hashPassword(oldPassword || '');
       if (oldHash !== storedHash) {
         return new Response(JSON.stringify({ success: false, error: 'Password lama tidak cocok!' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: corsHeaders,
         });
       }
 
       if (!newPassword || newPassword.length < 8) {
         return new Response(JSON.stringify({ success: false, error: 'Password baru minimal 8 karakter!' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: corsHeaders,
         });
       }
 
@@ -149,29 +184,25 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           message: 'Kredensial keamanan berhasil diperbarui di Cloudflare KV!',
         }),
         {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: corsHeaders,
         }
       );
     }
 
     return new Response(JSON.stringify({ success: false, error: 'Aksi tidak valid' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: corsHeaders,
     });
   } catch (err: any) {
     return new Response(JSON.stringify({ success: false, error: err.message || 'Kesalahan server' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: corsHeaders,
     });
   }
 };
 
-export const onRequestOptions = async () => {
+export const onRequestOptions = async (context: { request: Request }) => {
   return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers: getCorsHeaders(context.request),
   });
 };

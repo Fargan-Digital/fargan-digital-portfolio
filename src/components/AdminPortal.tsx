@@ -464,7 +464,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToCity, onProjec
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-mono">
-              Operator: <span className="text-cyan-400 font-bold">{projectStorage.getAuthUser()}</span> • Jalur Rahasia: /Alfarghan
+              Operator: <span className="text-cyan-400 font-bold">{projectStorage.getAuthUser()}</span> • Jalur: /fargan-admin
             </p>
           </div>
         </div>
@@ -688,7 +688,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToCity, onProjec
               </div>
               <div>
                 <h2 className="text-base font-black text-white">GANTI KREDENSIAL KEAMANAN</h2>
-                <p className="text-[11px] text-slate-400 font-mono">Proteksi akses /Alfarghan dengan enkripsi SHA-256 Cloudflare</p>
+                <p className="text-[11px] text-slate-400 font-mono">Proteksi akses /fargan-admin dengan enkripsi SHA-256 Cloudflare</p>
               </div>
             </div>
 
