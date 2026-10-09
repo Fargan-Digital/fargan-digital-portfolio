@@ -43,9 +43,9 @@ export const translations = {
     lobbyEnterCity: 'Masuk & Eksplorasi Kota 3D',
     lobbyViewProfile: 'Lihat Profil Karakter',
     metaverseWelcomeTag: 'AI GUIDE VIRTUAL • METAVERSE FARGAN DIGITAL',
-    metaverseSpeakerTitle: 'Al Fargan Orin (Avatar Digital)',
+    metaverseSpeakerTitle: 'Fargan (Avatar Digital)',
     metaverseSpeakerStatus: 'ONLINE • TRANSMISI AKTIF',
-    metaverseGreetingSpeech: 'Selamat datang di Metaverse Portofolio Fargan Digital Creative! Saya adalah avatar digital dari Al Fargan Orin. Di kota 3D ini, seluruh portofolio rekayasa software, aplikasi SaaS, dan otomasi AI kami diwujudkan menjadi gedung-gedung kota masa depan yang hidup. Anda dapat berjalan bebas, berdialog langsung dengan staf resepsionis AI di setiap gedung, memeriksa spesifikasi teknologi, dan meluncurkan setiap website secara live.',
+    metaverseGreetingSpeech: 'Selamat datang di Metaverse Portofolio Fargan Digital Creative! Saya adalah avatar digital dari Fargan. Di kota 3D ini, seluruh portofolio rekayasa software, aplikasi SaaS, dan otomasi AI kami diwujudkan menjadi gedung-gedung kota masa depan yang hidup. Anda dapat berjalan bebas, berdialog langsung dengan staf resepsionis AI di setiap gedung, memeriksa spesifikasi teknologi, dan meluncurkan setiap website secara live.',
     metaverseExploreBtn: '🚀 JELAJAHI KOTA METAVERSE FARGAN DIGITAL CREATIVE ➔',
     metaverseProfileBtn: 'Profil Engineer 👤',
     metaverseWorksBtn: '11 Gedung Kota 🏢',
@@ -59,7 +59,7 @@ export const translations = {
     // Stage 2: Character
     characterStatus: 'STATUS KARAKTER: ONLINE',
     characterLevel: 'LVL. 99 FULLSTACK ENG',
-    characterName: 'Al Fargan Orin',
+    characterName: 'Fargan',
     characterRoleDescMale: 'Software Engineer & AI Architect yang memadukan keahlian teknik full-stack modern dengan pemahaman mendalam tentang unit ekonomi bisnis, margin profitabilitas, dan konversi pemasaran digital.',
     characterRoleDescFemale: 'Software Engineer & AI Architect (Edisi Avatar Digital) yang memadukan keahlian arsitektur cloud modern dengan otomasi AI mutakhir dan desain antarmuka imersif masa depan.',
     statWebSaas: 'Arsitektur Web & SaaS (React/TypeScript/Cloudflare)',
@@ -101,7 +101,7 @@ export const translations = {
     contactHeading: 'Mari Kolaborasi & Bangun Bersama!',
     contactSubheading: 'Punya ide software, butuh otomatisasi AI cerdas, atau ingin portofolio digital interaktif 3D seperti ini? Pintu server terbuka untuk Anda.',
     contactWhatsAppCta: 'Chat WhatsApp: 0812-9517-5618 (Konsultasi Bisnis)',
-    contactSubtext: 'Fast Response • Al Fargan Orin • Siap Diskusi Arsitektur & Penawaran',
+    contactSubtext: 'Fast Response • Fargan • Siap Diskusi Arsitektur & Penawaran',
 
     // CS Dialogue Card
     csGreetingHeader: 'KONSULTASI & INFORMASI RESEPSIONIS',
@@ -147,9 +147,9 @@ export const translations = {
     lobbyEnterCity: 'Enter & Explore 3D City',
     lobbyViewProfile: 'View Character Profile',
     metaverseWelcomeTag: 'AI VIRTUAL GUIDE • FARGAN DIGITAL METAVERSE',
-    metaverseSpeakerTitle: 'Al Fargan Orin (Digital Avatar)',
+    metaverseSpeakerTitle: 'Fargan (Digital Avatar)',
     metaverseSpeakerStatus: 'ONLINE • LIVE TRANSMISSION',
-    metaverseGreetingSpeech: 'Welcome to the Fargan Digital Creative Metaverse Portfolio! I am the digital avatar of Al Fargan Orin. In this 3D virtual world, our entire software engineering, SaaS applications, and AI automation portfolio are manifested as living futuristic city buildings. You can freely explore, chat directly with AI receptionists at each building, inspect technical architecture, and launch live production websites.',
+    metaverseGreetingSpeech: 'Welcome to the Fargan Digital Creative Metaverse Portfolio! I am the digital avatar of Fargan. In this 3D virtual world, our entire software engineering, SaaS applications, and AI automation portfolio are manifested as living futuristic city buildings. You can freely explore, chat directly with AI receptionists at each building, inspect technical architecture, and launch live production websites.',
     metaverseExploreBtn: '🚀 EXPLORE FARGAN DIGITAL CREATIVE METAVERSE ➔',
     metaverseProfileBtn: 'Engineer Profile 👤',
     metaverseWorksBtn: '11 City Buildings 🏢',
@@ -163,7 +163,7 @@ export const translations = {
     // Stage 2: Character
     characterStatus: 'CHARACTER STATUS: ONLINE',
     characterLevel: 'LVL. 99 FULLSTACK ENG',
-    characterName: 'Al Fargan Orin',
+    characterName: 'Fargan',
     characterRoleDescMale: 'Software Engineer & AI Architect combining modern full-stack engineering with deep mastery of unit economics, net margins, and high-conversion digital growth.',
     characterRoleDescFemale: 'Software Engineer & AI Architect (Digital Avatar Edition) fusing cutting-edge cloud architectures with autonomous AI workflows and immersive future UI systems.',
     statWebSaas: 'Web & SaaS Architecture (React/TypeScript/Cloudflare)',
@@ -205,7 +205,7 @@ export const translations = {
     contactHeading: "Let's Collaborate & Build Together!",
     contactSubheading: 'Have a software vision, need autonomous AI agents, or want an interactive 3D digital metaverse portfolio like this? Server doors are open for you.',
     contactWhatsAppCta: 'Chat WhatsApp: 0812-9517-5618 (Business Advisory)',
-    contactSubtext: 'Fast Response • Al Fargan Orin • Ready for Architecture Discussions & Quotations',
+    contactSubtext: 'Fast Response • Fargan • Ready for Architecture Discussions & Quotations',
 
     // CS Dialogue Card
     csGreetingHeader: 'RECEPTIONIST CS ADVISORY',

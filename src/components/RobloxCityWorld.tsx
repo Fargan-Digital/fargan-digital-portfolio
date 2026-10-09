@@ -250,14 +250,19 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       scene.add(road);
     };
 
-    createRoad(8, 110, 0, 0);
-    createRoad(6, 110, -18, 0);
-    createRoad(6, 110, 18, 0);
-    createRoad(6, 110, 0, -8, true);
-    createRoad(6, 110, 0, 16, true);
+    // Central Boulevard (N-S): x = 0, width 8, runs from Fargan Tower plaza (z = -29) to southern edge (z = +33)
+    createRoad(8, 62, 0, 2);
+    // West Avenue (N-S): x = -21, width 6, runs from z = -38 to z = +34
+    createRoad(6, 72, -21, -2);
+    // East Avenue (N-S): x = +21, width 6, runs from z = -38 to z = +34
+    createRoad(6, 72, 21, -2);
+    // North Crossroad (E-W): z = -12, width 6, runs from x = -36 to x = +36
+    createRoad(6, 72, 0, -12, true);
+    // South Crossroad (E-W): z = +14, width 6, runs from x = -36 to x = +36
+    createRoad(6, 72, 0, 14, true);
 
     // Central Plaza circle
-    const plazaGeo = new THREE.CircleGeometry(10, 32);
+    const plazaGeo = new THREE.CircleGeometry(9, 32);
     const plazaMat = new THREE.MeshStandardMaterial({ color: 0x111b2b, roughness: 0.6 });
     const plaza = new THREE.Mesh(plazaGeo, plazaMat);
     plaza.rotation.x = -Math.PI / 2;
@@ -401,9 +406,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       signMesh.position.set(0, b.id === 'fargan-tower' ? 31 : b.height + 1.4, 0);
 
       // Determine building facade and entrance direction
-      const isWestSide = b.id === 'roban-alam-lestari' || b.id === 'han-waste' || (b.position[0] <= -20);
-      const isEastSide = b.id === 'kavling-morowali' || b.id === 'farghan-digital-marketing' || (b.position[0] >= 20);
-      const isNorthSide = b.id === 'fargan-tower' || b.id === 'brandpulse' || b.id === 'anti-sobis' || b.id === 'fargan-guard-trading' || (b.position[2] <= -10);
+      const isWestSide = b.id === 'roban-alam-lestari' || b.id === 'han-waste' || (b.position[0] <= -25);
+      const isEastSide = b.id === 'kavling-morowali' || b.id === 'fargan-digital-marketing' || (b.position[0] >= 25);
+      const isNorthSide = b.id === 'fargan-tower' || b.id === 'brandpulse' || b.id === 'anti-sobis' || b.id === 'fargan-guard-trading' || b.id === 'fargan-butik' || (b.position[2] <= -10);
 
       let padOffsetX = 0;
       let padOffsetZ = 0;
@@ -412,26 +417,26 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       let npcRotationY = 0;
 
       if (isWestSide) {
-        signMesh.rotation.y = Math.PI / 2; // sign faces East toward central road
+        signMesh.rotation.y = Math.PI / 2; // sign faces East toward avenue
         padOffsetX = b.width / 2 + 1.5;
         npcOffsetX = b.width / 2 + 2.3;
         npcOffsetZ = 0;
         npcRotationY = Math.PI / 2; // NPC stands in front, facing East
       } else if (isEastSide) {
-        signMesh.rotation.y = -Math.PI / 2; // sign faces West toward central road
+        signMesh.rotation.y = -Math.PI / 2; // sign faces West toward avenue
         padOffsetX = -b.width / 2 - 1.5;
         npcOffsetX = -b.width / 2 - 2.3;
         npcOffsetZ = 0;
         npcRotationY = -Math.PI / 2; // NPC stands in front, facing West
       } else if (isNorthSide) {
-        signMesh.rotation.y = 0; // sign faces South toward plaza
+        signMesh.rotation.y = 0; // sign faces South toward boulevard/crossroad
         padOffsetZ = b.depth / 2 + 1.5;
         npcOffsetX = 0;
         npcOffsetZ = b.depth / 2 + 2.3;
         npcRotationY = 0; // NPC stands in front, facing South
       } else {
-        // South buildings (fargan-kopi, farghan-butik, hendar-fitness)
-        signMesh.rotation.y = Math.PI; // sign faces North toward plaza
+        // South buildings (fargan-kopi, hendar-fitness)
+        signMesh.rotation.y = Math.PI; // sign faces North toward crossroad
         padOffsetZ = -b.depth / 2 - 1.5;
         npcOffsetX = 0;
         npcOffsetZ = -b.depth / 2 - 2.3;
@@ -445,12 +450,13 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       csSpots.set(b.id, { x: csWorldX, z: csWorldZ });
       csSpotsRef.current.set(b.id, { x: csWorldX, z: csWorldZ });
 
-      // CS Interactive Circle Pad (Solid glowing cylinder)
-      const padGeo = new THREE.CylinderGeometry(2.2, 2.2, 0.08, 32);
+      // CS Interactive Circle Pad (Solid glowing cylinder) - larger for iconic Fargan Tower
+      const padRadius = b.id === 'fargan-tower' ? 3.5 : 2.2;
+      const padGeo = new THREE.CylinderGeometry(padRadius, padRadius, 0.08, 32);
       const padMat = new THREE.MeshStandardMaterial({ 
         color: b.neonColor, 
         emissive: b.neonColor,
-        emissiveIntensity: 0.4,
+        emissiveIntensity: 0.45,
         roughness: 0.25,
         transparent: true,
         opacity: 0.85
@@ -460,7 +466,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       bGroup.add(pad);
 
       // Glowing outer ring border
-      const ringGeo = new THREE.RingGeometry(2.1, 2.38, 32);
+      const ringGeo = new THREE.RingGeometry(padRadius - 0.12, padRadius + 0.18, 32);
       const ringMat = new THREE.MeshBasicMaterial({ 
         color: b.neonColor, 
         side: THREE.DoubleSide 
@@ -616,7 +622,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       });
     });
 
-    // 5. Streetlights around the city
+    // 5. Streetlights placed on sidewalks along roads
     const addStreetLight = (x: number, z: number) => {
       const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, 3.5, 8);
       const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
@@ -636,48 +642,53 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     };
 
     const lightCoords = [
-      [-6, -6], [6, -6], [-6, 6], [6, 6],
-      [-6, -18], [6, -18], [-6, 18], [6, 18],
-      [-24, -6], [-24, 6], [24, -6], [24, 6]
+      // Central Boulevard sidewalks (width 8: edges at x = ±4.8)
+      [-4.8, -6], [4.8, -6], [-4.8, 6], [4.8, 6],
+      [-4.8, -20], [4.8, -20], [-4.8, 20], [4.8, 20],
+      // West Avenue sidewalks (center x = -21, edges at x = -24.8 & -17.2)
+      [-24.8, -2], [-17.2, -2], [-24.8, 22], [-17.2, 22],
+      // East Avenue sidewalks (center x = 21, edges at x = 17.2 & 24.8)
+      [17.2, -2], [24.8, -2], [17.2, 22], [24.8, 22]
     ];
     lightCoords.forEach(([lx, lz]) => addStreetLight(lx, lz));
 
     // =========================================================
     // LIVING CITY: HOVER CARS, FLYING DRONE & AMBIENT PARTICLES
+    // Cars drive strictly on asphalt roads
     // =========================================================
     const hoverCars: { mesh: THREE.Group; axis: 'x' | 'z'; dir: number; speed: number; min: number; max: number }[] = [];
 
     const createHoverCar = (color: number, lightColor: number) => {
       const car = new THREE.Group();
       const body = new THREE.Mesh(
-        new THREE.BoxGeometry(1.6, 0.45, 2.8),
+        new THREE.BoxGeometry(1.5, 0.45, 2.7),
         new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.8 })
       );
       body.position.y = 0.55;
       car.add(body);
 
       const glass = new THREE.Mesh(
-        new THREE.BoxGeometry(1.2, 0.35, 1.4),
+        new THREE.BoxGeometry(1.1, 0.35, 1.3),
         new THREE.MeshStandardMaterial({ color: 0x0A0F1D, roughness: 0.1 })
       );
       glass.position.set(0, 0.85, -0.2);
       car.add(glass);
 
-      const lightGeo = new THREE.BoxGeometry(0.35, 0.12, 0.05);
+      const lightGeo = new THREE.BoxGeometry(0.32, 0.12, 0.05);
       const headL = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: lightColor }));
-      headL.position.set(-0.5, 0.55, -1.41);
+      headL.position.set(-0.45, 0.55, -1.36);
       const headR = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: lightColor }));
-      headR.position.set(0.5, 0.55, -1.41);
+      headR.position.set(0.45, 0.55, -1.36);
       car.add(headL, headR);
 
       const tailL = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xFF0055 }));
-      tailL.position.set(-0.5, 0.55, 1.41);
+      tailL.position.set(-0.45, 0.55, 1.36);
       const tailR = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xFF0055 }));
-      tailR.position.set(0.5, 0.55, 1.41);
+      tailR.position.set(0.45, 0.55, 1.36);
       car.add(tailL, tailR);
 
       const glow = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.4, 2.4),
+        new THREE.PlaneGeometry(1.3, 2.3),
         new THREE.MeshBasicMaterial({ color: lightColor, transparent: true, opacity: 0.45 })
       );
       glow.rotation.x = -Math.PI / 2;
@@ -687,22 +698,45 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       return car;
     };
 
+    // Car 1: Central Boulevard Southbound (x = 2.0, asphalt road is x in [-4, 4])
     const car1 = createHoverCar(0x0F2838, 0x00E5FF);
-    car1.position.set(-8, 0, -35);
+    car1.position.set(2.0, 0, -25);
     scene.add(car1);
-    hoverCars.push({ mesh: car1, axis: 'z', dir: 1, speed: 0.30, min: -42, max: 42 });
+    hoverCars.push({ mesh: car1, axis: 'z', dir: 1, speed: 0.28, min: -25, max: 28 });
 
+    // Car 2: Central Boulevard Northbound (x = -2.0, asphalt road is x in [-4, 4])
     const car2 = createHoverCar(0x380F28, 0xFF0077);
-    car2.position.set(8, 0, 35);
+    car2.position.set(-2.0, 0, 28);
     car2.rotation.y = Math.PI;
     scene.add(car2);
-    hoverCars.push({ mesh: car2, axis: 'z', dir: -1, speed: 0.28, min: -42, max: 42 });
+    hoverCars.push({ mesh: car2, axis: 'z', dir: -1, speed: 0.27, min: -25, max: 28 });
 
-    const car3 = createHoverCar(0x35250A, 0xF59E0B);
-    car3.position.set(-35, 0, 32);
-    car3.rotation.y = Math.PI / 2;
+    // Car 3: West Avenue Northbound (x = -21, asphalt road is x in [-24, -18])
+    const car3 = createHoverCar(0x1B381E, 0x10B981);
+    car3.position.set(-21, 0, 30);
+    car3.rotation.y = Math.PI;
     scene.add(car3);
-    hoverCars.push({ mesh: car3, axis: 'x', dir: 1, speed: 0.26, min: -42, max: 42 });
+    hoverCars.push({ mesh: car3, axis: 'z', dir: -1, speed: 0.26, min: -34, max: 30 });
+
+    // Car 4: East Avenue Southbound (x = 21, asphalt road is x in [18, 24])
+    const car4 = createHoverCar(0x38280F, 0xF59E0B);
+    car4.position.set(21, 0, -34);
+    scene.add(car4);
+    hoverCars.push({ mesh: car4, axis: 'z', dir: 1, speed: 0.26, min: -34, max: 30 });
+
+    // Car 5: North Crossroad Eastbound (z = -12, asphalt road is z in [-15, -9])
+    const car5 = createHoverCar(0x280F38, 0xA855F7);
+    car5.position.set(-32, 0, -12);
+    car5.rotation.y = Math.PI / 2;
+    scene.add(car5);
+    hoverCars.push({ mesh: car5, axis: 'x', dir: 1, speed: 0.25, min: -32, max: 32 });
+
+    // Car 6: South Crossroad Westbound (z = 14, asphalt road is z in [11, 17])
+    const car6 = createHoverCar(0x0C2B38, 0x06B6D4);
+    car6.position.set(32, 0, 14);
+    car6.rotation.y = -Math.PI / 2;
+    scene.add(car6);
+    hoverCars.push({ mesh: car6, axis: 'x', dir: -1, speed: 0.25, min: -32, max: 32 });
 
     // Flying AI Drone in city skyline
     const droneGroup = new THREE.Group();
@@ -1123,14 +1157,15 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
     let walkCycle = 0;
     let stepTimer = 0;
 
-    // Pinpoint proximity: Only triggers when player steps directly onto the CS circle pad
+    // Pinpoint proximity: Only triggers when player steps directly onto the glowing CS circle pad
     const checkNearestBuilding = (px: number, pz: number): CityBuilding | null => {
       for (const b of currentProjectsRef.current) {
         const spot = csSpotsRef.current.get(b.id);
         if (!spot) continue;
         const dist = Math.hypot(px - spot.x, pz - spot.z);
-        // Trigger ONLY when standing on the glowing CS circle (pad radius 2.2m)
-        if (dist <= 2.2) {
+        // Trigger when standing on the glowing CS circle (pad radius 3.5m for Fargan Tower, 2.2m for other buildings)
+        const triggerRadius = b.id === 'fargan-tower' ? 3.8 : 2.5;
+        if (dist <= triggerRadius) {
           return b;
         }
       }
@@ -1312,12 +1347,13 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           setActiveDialogue(near);
         }
       } else {
-        // Only close when player has stepped completely outside the CS circle (tolerance > 3.0m)
+        // Only close when player has stepped completely outside the CS circle
         if (activeDialogueRef.current) {
           const activeSpot = csSpotsRef.current.get(activeDialogueRef.current.id);
           if (activeSpot) {
             const activeDist = Math.hypot(playerGroup.position.x - activeSpot.x, playerGroup.position.z - activeSpot.z);
-            if (activeDist > 3.0) {
+            const exitThreshold = activeDialogueRef.current.id === 'fargan-tower' ? 4.8 : 3.2;
+            if (activeDist > exitThreshold) {
               setActiveDialogue(null);
               setDismissedId(null);
             }

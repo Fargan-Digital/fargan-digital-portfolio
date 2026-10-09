@@ -47,7 +47,7 @@ export const portfolioProjects: CityBuilding[] = [
     height: 28,
     width: 16,
     depth: 10,
-    url: 'https://wa.me/6281295175618?text=Halo%20CEO%20Al%20Fargan,%20saya%20tertarik%20berkonsultasi%20mengenai%20pembuatan%20website%20premium%20/%20fitur%20smart%20untuk%20bisnis%20saya...',
+    url: 'https://wa.me/6281295175618?text=Halo%20CEO%20Fargan,%20saya%20tertarik%20berkonsultasi%20mengenai%20pembuatan%20website%20premium%20/%20fitur%20smart%20untuk%20bisnis%20saya...',
     badge: 'PUSAT INFORMASI HQ',
     badgeEn: 'CENTRAL HQ & INFO',
     desc: 'Menara pusat informasi & inovasi Fargan Digital Creative. Kami membantu membuat wajah bisnis Anda semakin kelihatan profesional, berkelas, dan kredibel dengan tampilan website premium, fitur smart AI, dan software kustom.',
@@ -64,11 +64,11 @@ export const portfolioProjects: CityBuilding[] = [
       'Custom Enterprise Software & Web Apps (Internal management dashboards, scalable cloud)',
       'Interactive 3D Showrooms & Metaverse (Futuristic immersive visual experiences)'
     ],
-    npcName: 'Al Fargan Orin',
+    npcName: 'Fargan',
     npcRole: '👑 CEO & Founder — Fargan Digital Creative',
     npcRoleEn: '👑 CEO & Founder — Fargan Digital Creative',
-    dialogueText: 'Halo! Saya Al Fargan Orin, CEO & Lead Architect di Fargan Digital Creative. Selamat datang di Menara Pusat Informasi kami! Kami hadir untuk membantu mentransformasikan wajah bisnis Anda menjadi jauh lebih profesional, kredibel, dan memikat pelanggan dengan tampilan website premium, fitur smart AI, dan software custom. Ada ide bisnis yang ingin Anda wujudkan? Silakan klik tombol chat WhatsApp di bawah untuk konsultasi langsung bersama saya!',
-    dialogueTextEn: 'Hello! I am Al Fargan Orin, CEO & Lead Architect at Fargan Digital Creative. Welcome to our Central Information Tower! We help elevate your business into a high-credibility, world-class brand with premium websites, smart AI automations, and custom software. Have a project or business idea in mind? Click the WhatsApp consultation button below to connect with me directly!'
+    dialogueText: 'Halo! Saya Fargan, CEO & Lead Architect di Fargan Digital Creative. Selamat datang di Menara Pusat Informasi kami! Kami hadir untuk membantu mentransformasikan wajah bisnis Anda menjadi jauh lebih profesional, kredibel, dan memikat pelanggan dengan tampilan website premium, fitur smart AI, dan software custom. Ada ide bisnis yang ingin Anda wujudkan? Silakan klik tombol chat WhatsApp di bawah untuk konsultasi langsung bersama saya!',
+    dialogueTextEn: 'Hello! I am Fargan, CEO & Lead Architect at Fargan Digital Creative. Welcome to our Central Information Tower! We help elevate your business into a high-credibility, world-class brand with premium websites, smart AI automations, and custom software. Have a project or business idea in mind? Click the WhatsApp consultation button below to connect with me directly!'
   },
   {
     id: 'brandpulse',
@@ -78,12 +78,12 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Enterprise SaaS • Production Ready',
     categoryEn: 'Enterprise SaaS • Production Ready',
     categoryGroup: 'enterprise',
-    position: [-10, 5, -22],
+    position: [-11, 5, -22],
     color: 0x0F1B29,
     neonColor: 0x00A2FF, // Electric Cyan
     height: 10,
-    width: 9,
-    depth: 8,
+    width: 8.5,
+    depth: 7,
     url: 'https://brand-owner.pages.dev',
     badge: 'FLAGSHIP ERP (LIVE)',
     badgeEn: 'FLAGSHIP ERP (LIVE)',
@@ -115,7 +115,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'AI Cyber Security & Fraud Prevention',
     categoryEn: 'AI Cyber Security & Fraud Prevention',
     categoryGroup: 'fintech_security',
-    position: [-22, 4.5, -20],
+    position: [-31, 4.5, -22],
     color: 0x220A16,
     neonColor: 0xFF0055, // Alert Magenta Red
     height: 9,
@@ -150,11 +150,11 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'FinTech & Trading Intelligence',
     categoryEn: 'FinTech & Trading Intelligence',
     categoryGroup: 'fintech_security',
-    position: [10, 4.5, -22],
+    position: [11, 4.5, -22],
     color: 0x06150E,
     neonColor: 0x00FF66, // Matrix Green
     height: 9,
-    width: 8,
+    width: 8.5,
     depth: 7,
     url: 'https://fargan-guard-trading.pages.dev',
     badge: 'FINTECH RISK MATRIX',
@@ -185,7 +185,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Corporate Enterprise B2B',
     categoryEn: 'Corporate Enterprise B2B',
     categoryGroup: 'corporate_b2b',
-    position: [-26, 4, -2],
+    position: [-31, 4, 1],
     color: 0x0B231B,
     neonColor: 0x10B981, // Emerald Green
     height: 8,
@@ -220,7 +220,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Industrial Oil & Drilling Logistics',
     categoryEn: 'Industrial Oil & Drilling Logistics',
     categoryGroup: 'corporate_b2b',
-    position: [-26, 4, 12],
+    position: [-31, 4, 25],
     color: 0x15220A,
     neonColor: 0x84CC16, // Industrial Lime
     height: 8,
@@ -255,7 +255,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Real Estate & Property Landing Page',
     categoryEn: 'Real Estate & Property Landing Page',
     categoryGroup: 'property_agency',
-    position: [26, 4, -2],
+    position: [31, 4, 1],
     color: 0x241A0B,
     neonColor: 0xF59E0B, // Amber Gold
     height: 8,
@@ -283,14 +283,14 @@ export const portfolioProjects: CityBuilding[] = [
     dialogueTextEn: 'Looking for a high-yield property investment? Kavling Bahodopi Morowali offers prime ready-to-build plots adjacent to the booming IMIP nickel industrial zone with SHM certification starting from Rp25M. Explore our block site plan now!'
   },
   {
-    id: 'farghan-digital-marketing',
-    name: 'Farghan Digital Marketing',
+    id: 'fargan-digital-marketing',
+    name: 'Fargan Digital Marketing',
     subtitle: 'Jasa Pembuatan Website Marketing Terima Beres & Mesin Cuan',
     subtitleEn: 'Turnkey Marketing Websites & Automated Sales Conversion Engine',
     category: 'Digital Agency & Conversion Growth',
     categoryEn: 'Digital Agency & Conversion Growth',
     categoryGroup: 'property_agency',
-    position: [26, 4, 12],
+    position: [31, 4, 25],
     color: 0x1A0D2E,
     neonColor: 0xA855F7, // Electric Purple
     height: 8,
@@ -314,8 +314,8 @@ export const portfolioProjects: CityBuilding[] = [
     npcName: 'Rian F.',
     npcRole: '🚀 Growth Strategist — Marketing Agency',
     npcRoleEn: '🚀 Growth Strategist — Marketing Agency',
-    dialogueText: 'Ingin website yang bikin cuan, bukan sekadar tampil? Farghan Digital Marketing merancang website terima beres dengan copywriting berfokus konversi, kecepatan tinggi, dan strategi closing otomatis. Mari lihat portofolio agency kami!',
-    dialogueTextEn: 'Want a website that actively generates revenue instead of just looking pretty? Farghan Digital Marketing builds turnkey web machines equipped with hypnotic conversion copy, blazing speed, and automated sales closing. Check out our agency portfolio!'
+    dialogueText: 'Ingin website yang bikin cuan, bukan sekadar tampil? Fargan Digital Marketing merancang website terima beres dengan copywriting berfokus konversi, kecepatan tinggi, dan strategi closing otomatis. Mari lihat portofolio agency kami!',
+    dialogueTextEn: 'Want a website that actively generates revenue instead of just looking pretty? Fargan Digital Marketing builds turnkey web machines equipped with hypnotic conversion copy, blazing speed, and automated sales closing. Check out our agency portfolio!'
   },
   {
     id: 'fargan-kopi',
@@ -325,7 +325,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'F&B Brand & Quick Commerce',
     categoryEn: 'F&B Brand & Quick Commerce',
     categoryGroup: 'consumer_lifestyle',
-    position: [-16, 3.5, 24],
+    position: [-11, 3.5, 25],
     color: 0x251408,
     neonColor: 0xD97706, // Caramel Amber
     height: 7,
@@ -353,14 +353,14 @@ export const portfolioProjects: CityBuilding[] = [
     dialogueTextEn: 'Hello! Fargan Kopi is a hyperlocal cloud kitchen software engine connecting Customers, Outlets, and Owners. Featuring a smart cloud POS and our interactive "Coffee Professor" blend guide. Click the link to explore our digital coffee universe!'
   },
   {
-    id: 'farghan-butik',
-    name: 'Farghan Butik',
+    id: 'fargan-butik',
+    name: 'Fargan Butik',
     subtitle: 'Desain Butik Busana Muslim & Fashion Online Rasa Premium',
     subtitleEn: 'Luxury Muslim Fashion & High-End E-Commerce Boutique',
     category: 'Fashion & Luxury E-Commerce',
     categoryEn: 'Fashion & Luxury E-Commerce',
     categoryGroup: 'consumer_lifestyle',
-    position: [0, 3.5, 24],
+    position: [31, 3.5, -22],
     color: 0x280D1C,
     neonColor: 0xEC4899, // Hot Pink Rose
     height: 7,
@@ -382,10 +382,10 @@ export const portfolioProjects: CityBuilding[] = [
       'Integrated private stylist consultation & custom fitting requests'
     ],
     npcName: 'Clara Stylist',
-    npcRole: '👗 Fashion Curator — Farghan Butik',
-    npcRoleEn: '👗 Fashion Curator — Farghan Butik',
-    dialogueText: 'Selamat datang di Farghan Butik! Kami menyuguhkan konsep butik busana wanita muslim premium dengan tampilan editorial majalah mewah, katalog busana anggun, dan konsultasi gaya pribadi. Silakan kunjungi butik digital kami!',
-    dialogueTextEn: 'Welcome to Farghan Butik! We showcase premium modest women’s fashion with a high-end luxury magazine aesthetic, an exclusive designer catalog, and personal styling appointments. Click below to experience our digital boutique!'
+    npcRole: '👗 Fashion Curator — Fargan Butik',
+    npcRoleEn: '👗 Fashion Curator — Fargan Butik',
+    dialogueText: 'Selamat datang di Fargan Butik! Kami menyuguhkan konsep butik busana wanita muslim premium dengan tampilan editorial majalah mewah, katalog busana anggun, dan konsultasi gaya pribadi. Silakan kunjungi butik digital kami!',
+    dialogueTextEn: 'Welcome to Fargan Butik! We showcase premium modest women’s fashion with a high-end luxury magazine aesthetic, an exclusive designer catalog, and personal styling appointments. Click below to experience our digital boutique!'
   },
   {
     id: 'hendar-fitness',
@@ -395,7 +395,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Personal Branding & Health Fitness',
     categoryEn: 'Personal Branding & Health Fitness',
     categoryGroup: 'consumer_lifestyle',
-    position: [16, 3.5, 24],
+    position: [11, 3.5, 25],
     color: 0x211208,
     neonColor: 0xEA580C, // Hyper Orange
     height: 7,

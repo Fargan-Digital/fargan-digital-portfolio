@@ -36,7 +36,13 @@ export class ProjectStorageService {
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
-          this.memoryProjects = data.projects;
+          // Guarantee fargan-tower always exists
+          let loaded = data.projects;
+          if (!loaded.some((p: any) => p.id === 'fargan-tower')) {
+            const tower = portfolioProjects.find(p => p.id === 'fargan-tower');
+            if (tower) loaded = [tower, ...loaded];
+          }
+          this.memoryProjects = loaded;
           this.saveToLocalCache(this.memoryProjects);
           return this.memoryProjects;
         }
