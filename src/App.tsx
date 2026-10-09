@@ -248,34 +248,38 @@ export function App() {
         {viewMode === 'city' ? (
           <div className="relative w-full h-full flex flex-col justify-between">
             {/* Topbar HUD */}
-            <header className="absolute top-0 left-0 right-0 z-40 px-3 sm:px-5 py-2 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/75 backdrop-blur-md">
-              <div className="flex items-center gap-2 sm:gap-3">
+            <header className="absolute top-0 left-0 right-0 z-40 px-2 sm:px-5 py-2 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
+              <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-600 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-red-600/30 border border-red-400/50 flex-shrink-0">
-                  R
+                  F
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-white text-xs sm:text-sm tracking-wide">FARGAN ROBLOX CITY</span>
-                    <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono animate-pulse">
-                      10 KARYA
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <span className="font-extrabold text-white text-xs sm:text-sm tracking-wide">
+                      <span className="sm:hidden">FARGAN</span>
+                      <span className="hidden sm:inline">FARGAN METAVERSE CITY</span>
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
+                      {projects.length}
                     </span>
                   </div>
                   <p className="hidden md:block text-[10px] text-slate-400 font-mono">Gunakan W,A,S,D untuk berjalan mendekati gedung karya</p>
                 </div>
               </div>
 
-              {/* Mode Switcher & Global Toggles */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="flex bg-slate-900/90 rounded-xl p-0.5 sm:p-1 border border-white/10 text-xs">
+              {/* Mode Switcher & Global Toggles - Compact on Mobile */}
+              <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                <div className="flex bg-slate-900/90 rounded-lg sm:rounded-xl p-0.5 border border-white/10 text-xs">
                   <button
                     onClick={() => {
                       setViewMode('city');
                       playSfx(520, 'sine');
                     }}
-                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer bg-cyan-500 text-slate-950 shadow-md text-[11px] sm:text-xs"
+                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer bg-cyan-500 text-slate-950 shadow-md text-[11px]"
+                    title={t.cityMode}
                   >
                     <Gamepad2 className="w-3.5 h-3.5" />
-                    <span>{t.cityMode}</span>
+                    <span className="hidden sm:inline">{t.cityMode}</span>
                   </button>
 
                   <button
@@ -283,41 +287,40 @@ export function App() {
                       setViewMode('cinematic');
                       playSfx(520, 'sine');
                     }}
-                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer text-slate-400 hover:text-white text-[11px] sm:text-xs"
+                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer text-slate-400 hover:text-white text-[11px]"
+                    title={t.cinematicMode}
                   >
                     <Tv className="w-3.5 h-3.5" />
-                    <span>{t.cinematicMode}</span>
+                    <span className="hidden sm:inline">{t.cinematicMode}</span>
                   </button>
                 </div>
 
                 {/* Day / Night Toggle */}
                 <button
                   onClick={toggleMode}
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
                   title={mode === 'day' ? t.nightMode : t.dayMode}
                 >
                   {mode === 'day' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-cyan-400" />}
-                  <span className="hidden md:inline text-[11px] font-mono font-bold">{mode === 'day' ? t.dayMode : t.nightMode}</span>
                 </button>
 
                 {/* Character Avatar Toggle */}
                 <button
                   onClick={toggleGender}
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
                   title="Pilih Model Karakter (Pria / Wanita)"
                 >
-                  <span>{gender === 'female' ? '👧' : '👦'}</span>
-                  <span className="hidden md:inline text-[11px] font-mono font-bold">{gender === 'female' ? t.charFemale : t.charMale}</span>
+                  <span className="text-xs">{gender === 'female' ? '👧' : '👦'}</span>
                 </button>
 
                 {/* Language Toggle */}
                 <button
                   onClick={toggleLang}
-                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-0.5 sm:gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
                   title="Ganti Bahasa (ID / EN)"
                 >
-                  <span>{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
-                  <span className="text-[10px] sm:text-[11px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
+                  <span className="text-xs">{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
+                  <span className="hidden sm:inline text-[10px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
                 </button>
 
                 {/* Sound BGM Toggle */}
@@ -326,19 +329,13 @@ export function App() {
                     const newMuted = soundEngine.toggleMute();
                     setSoundEnabled(!newMuted);
                   }}
-                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1.5 transition-colors shadow active:scale-95"
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 transition-colors shadow active:scale-95"
                   title="Toggle Suara Musik & Efek"
                 >
                   {soundEnabled ? (
-                    <>
-                      <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                      <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-cyan-300 font-bold">{t.bgmOn}</span>
-                    </>
+                    <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
                   ) : (
-                    <>
-                      <VolumeX className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="hidden sm:inline text-[10px] sm:text-[11px] font-mono text-slate-400 font-bold">{t.bgmMute}</span>
-                    </>
+                    <VolumeX className="w-3.5 h-3.5 text-slate-500" />
                   )}
                 </button>
               </div>
@@ -367,51 +364,68 @@ export function App() {
             <DustCanvas />
 
             {/* Topbar HUD in Cinematic Mode */}
-            <header className="relative z-40 w-full px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center font-black text-white text-xs border border-red-400/50">
+            <header className="relative z-40 w-full px-2 sm:px-5 py-2 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center font-black text-white text-xs border border-red-400/50 flex-shrink-0">
                   F
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-white text-sm tracking-wide">FARGAN DIGITAL</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
-                      CINEMATIC HUD
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <span className="font-extrabold text-white text-xs sm:text-sm tracking-wide">
+                      <span className="sm:hidden">FARGAN</span>
+                      <span className="hidden sm:inline">FARGAN DIGITAL</span>
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
+                      HUD
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400 font-mono">Creative Tech & Fullstack Engineer</p>
+                  <p className="hidden md:block text-[10px] text-slate-400 font-mono">Creative Tech & Fullstack Engineer</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
                 {/* Day / Night Toggle */}
                 <button
                   onClick={toggleMode}
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
                   title={mode === 'day' ? t.nightMode : t.dayMode}
                 >
                   {mode === 'day' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-cyan-400" />}
-                  <span className="hidden md:inline text-[11px] font-mono font-bold">{mode === 'day' ? t.dayMode : t.nightMode}</span>
                 </button>
 
                 {/* Character Gender Toggle */}
                 <button
                   onClick={toggleGender}
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
                   title="Pilih Model Karakter (Pria / Wanita)"
                 >
-                  <span>{gender === 'female' ? '👧' : '👦'}</span>
-                  <span className="hidden md:inline text-[11px] font-mono font-bold">{gender === 'female' ? t.charFemale : t.charMale}</span>
+                  <span className="text-xs">{gender === 'female' ? '👧' : '👦'}</span>
                 </button>
 
                 {/* Language Toggle */}
                 <button
                   onClick={toggleLang}
-                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-0.5 sm:gap-1 text-slate-200 hover:text-white shadow active:scale-95 transition-all"
                   title="Ganti Bahasa (ID / EN)"
                 >
-                  <span>{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
-                  <span className="text-[10px] sm:text-[11px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
+                  <span className="text-xs">{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
+                  <span className="hidden sm:inline text-[10px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
+                </button>
+
+                {/* Sound BGM Toggle */}
+                <button
+                  onClick={() => {
+                    const newMuted = soundEngine.toggleMute();
+                    setSoundEnabled(!newMuted);
+                  }}
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/10 text-xs cursor-pointer flex items-center gap-1 transition-colors shadow active:scale-95"
+                  title="Toggle Suara Musik & Efek"
+                >
+                  {soundEnabled ? (
+                    <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  ) : (
+                    <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+                  )}
                 </button>
 
                 <button
@@ -419,7 +433,7 @@ export function App() {
                     setViewMode('city');
                     playSfx(600, 'triangle');
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+                  className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
                 >
                   <Gamepad2 className="w-3.5 h-3.5" />
                   <span>{t.backToCityBtn} ➔</span>

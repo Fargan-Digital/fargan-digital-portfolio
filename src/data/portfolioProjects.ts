@@ -34,6 +34,43 @@ export interface CityBuilding {
 
 export const portfolioProjects: CityBuilding[] = [
   {
+    id: 'fargan-tower',
+    name: 'Fargan Digital Creative Central Tower',
+    subtitle: 'Pusat Informasi & Solusi Rekayasa Digital Bisnis Modern',
+    subtitleEn: 'Central Information Hub & Modern Digital Business Engineering',
+    category: 'Headquarters & Innovation Hub',
+    categoryEn: 'Headquarters & Innovation Hub',
+    categoryGroup: 'enterprise',
+    position: [0, 14, -36],
+    color: 0x091424,
+    neonColor: 0x00E5FF, // Radiant Electric Cyan & Neon Blue
+    height: 28,
+    width: 16,
+    depth: 10,
+    url: 'https://wa.me/6281295175618?text=Halo%20CEO%20Al%20Fargan,%20saya%20tertarik%20berkonsultasi%20mengenai%20pembuatan%20website%20premium%20/%20fitur%20smart%20untuk%20bisnis%20saya...',
+    badge: 'PUSAT INFORMASI HQ',
+    badgeEn: 'CENTRAL HQ & INFO',
+    desc: 'Menara pusat informasi & inovasi Fargan Digital Creative. Kami membantu membuat wajah bisnis Anda semakin kelihatan profesional, berkelas, dan kredibel dengan tampilan website premium, fitur smart AI, dan software kustom.',
+    descEn: 'The commanding central innovation tower of Fargan Digital Creative. We elevate and transform your business into a high-credibility brand through premium websites, smart AI automations, and custom enterprise software.',
+    features: [
+      'Website Bisnis & Landing Page Premium (Desain mewah, loading kilat, konversi tinggi)',
+      'Fitur Smart & Integrasi AI (Bot WhatsApp cerdas 24/7, otomasi proses bisnis)',
+      'Custom Software & Web App SaaS (Sistem internal, dashboard analitik, arsitektur cloud)',
+      'Showroom Interaktif 3D & Metaverse (Pengalaman visual masa depan yang memukau)'
+    ],
+    featuresEn: [
+      'Premium Business Websites & Landing Pages (Luxury aesthetics, sub-second speed, high conversion)',
+      'Smart Features & AI Workflows (24/7 intelligent WhatsApp bot, automated operations)',
+      'Custom Enterprise Software & Web Apps (Internal management dashboards, scalable cloud)',
+      'Interactive 3D Showrooms & Metaverse (Futuristic immersive visual experiences)'
+    ],
+    npcName: 'Al Fargan Orin',
+    npcRole: '👑 CEO & Founder — Fargan Digital Creative',
+    npcRoleEn: '👑 CEO & Founder — Fargan Digital Creative',
+    dialogueText: 'Halo! Saya Al Fargan Orin, CEO & Lead Architect di Fargan Digital Creative. Selamat datang di Menara Pusat Informasi kami! Kami hadir untuk membantu mentransformasikan wajah bisnis Anda menjadi jauh lebih profesional, kredibel, dan memikat pelanggan dengan tampilan website premium, fitur smart AI, dan software custom. Ada ide bisnis yang ingin Anda wujudkan? Silakan klik tombol chat WhatsApp di bawah untuk konsultasi langsung bersama saya!',
+    dialogueTextEn: 'Hello! I am Al Fargan Orin, CEO & Lead Architect at Fargan Digital Creative. Welcome to our Central Information Tower! We help elevate your business into a high-credibility, world-class brand with premium websites, smart AI automations, and custom software. Have a project or business idea in mind? Click the WhatsApp consultation button below to connect with me directly!'
+  },
+  {
     id: 'brandpulse',
     name: 'Brand Owner OS (BrandPulse AI)',
     subtitle: 'Software CFO & Reseller Intelligence untuk Brand Owner',
@@ -41,11 +78,11 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Enterprise SaaS • Production Ready',
     categoryEn: 'Enterprise SaaS • Production Ready',
     categoryGroup: 'enterprise',
-    position: [0, 5, -22],
+    position: [-10, 5, -22],
     color: 0x0F1B29,
     neonColor: 0x00A2FF, // Electric Cyan
     height: 10,
-    width: 10,
+    width: 9,
     depth: 8,
     url: 'https://brand-owner.pages.dev',
     badge: 'FLAGSHIP ERP (LIVE)',
@@ -78,7 +115,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'AI Cyber Security & Fraud Prevention',
     categoryEn: 'AI Cyber Security & Fraud Prevention',
     categoryGroup: 'fintech_security',
-    position: [-18, 4.5, -16],
+    position: [-22, 4.5, -20],
     color: 0x220A16,
     neonColor: 0xFF0055, // Alert Magenta Red
     height: 9,
@@ -113,7 +150,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'FinTech & Trading Intelligence',
     categoryEn: 'FinTech & Trading Intelligence',
     categoryGroup: 'fintech_security',
-    position: [18, 4.5, -16],
+    position: [10, 4.5, -22],
     color: 0x06150E,
     neonColor: 0x00FF66, // Matrix Green
     height: 9,

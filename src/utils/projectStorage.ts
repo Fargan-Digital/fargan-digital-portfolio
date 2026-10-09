@@ -1,6 +1,6 @@
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
 
-const STORAGE_KEY = 'fargan_portfolio_projects_v2';
+const STORAGE_KEY = 'fargan_portfolio_projects_v3';
 const TOKEN_KEY = 'fargan_admin_token_v1';
 const USER_KEY = 'fargan_admin_user_v1';
 
@@ -16,10 +16,14 @@ export class ProjectStorageService {
       const cached = localStorage.getItem(STORAGE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.some(p => p.id === 'fargan-tower')) {
           this.memoryProjects = parsed;
+          return;
         }
       }
+      // If no cache or older cache without fargan-tower, use latest default projects
+      this.memoryProjects = [...portfolioProjects];
+      this.saveToLocalCache(this.memoryProjects);
     } catch {}
   }
 

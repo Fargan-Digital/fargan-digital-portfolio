@@ -17,8 +17,7 @@ import {
   RotateCcw,
   RotateCw,
   Navigation,
-  Sun,
-  Moon
+  MessageCircle
 } from 'lucide-react';
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
 import { soundEngine } from '../utils/audioManager';
@@ -49,10 +48,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   projects,
   lang = 'id',
   mode = 'night',
-  gender = 'male',
-  onToggleLang,
-  onToggleMode,
-  onToggleGender
+  gender = 'male'
 }) => {
   const t = translations[lang];
   const currentProjects = projects && projects.length > 0 ? projects : portfolioProjects;
@@ -315,6 +311,65 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       wireframe.position.y = b.height / 2;
       bGroup.add(wireframe);
 
+      // Special Iconic 3D Multi-Tier Architecture for Central Tower
+      if (b.id === 'fargan-tower') {
+        // Tier 2: Middle Executive Tower
+        const midGeo = new THREE.BoxGeometry(12, 10, 8);
+        const midMat = new THREE.MeshStandardMaterial({ color: 0x07111e, roughness: 0.2, metalness: 0.4 });
+        const midMesh = new THREE.Mesh(midGeo, midMat);
+        midMesh.position.y = 19;
+        midMesh.castShadow = true;
+        bGroup.add(midMesh);
+
+        const midEdges = new THREE.EdgesGeometry(midGeo);
+        const midLines = new THREE.LineSegments(midEdges, lineMat);
+        midLines.position.y = 19;
+        bGroup.add(midLines);
+
+        // Tier 3: Penthouse Crown
+        const crownGeo = new THREE.BoxGeometry(8, 6, 6);
+        const crownMat = new THREE.MeshStandardMaterial({ color: 0x0a1628, roughness: 0.15, metalness: 0.5 });
+        const crownMesh = new THREE.Mesh(crownGeo, crownMat);
+        crownMesh.position.y = 27;
+        crownMesh.castShadow = true;
+        bGroup.add(crownMesh);
+
+        const crownEdges = new THREE.EdgesGeometry(crownGeo);
+        const crownLines = new THREE.LineSegments(crownEdges, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 }));
+        crownLines.position.y = 27;
+        bGroup.add(crownLines);
+
+        // Towering Cyber Spire Antenna & Beacon
+        const spireGeo = new THREE.CylinderGeometry(0.12, 0.45, 8, 8);
+        const spireMat = new THREE.MeshStandardMaterial({ 
+          color: 0x00E5FF, 
+          emissive: 0x00A2FF, 
+          emissiveIntensity: 0.8 
+        });
+        const spire = new THREE.Mesh(spireGeo, spireMat);
+        spire.position.y = 34;
+        bGroup.add(spire);
+
+        const beaconTopGeo = new THREE.OctahedronGeometry(0.8);
+        const beaconTopMat = new THREE.MeshBasicMaterial({ color: 0x38BDF8 });
+        const beaconTop = new THREE.Mesh(beaconTopGeo, beaconTopMat);
+        beaconTop.position.y = 38.5;
+        bGroup.add(beaconTop);
+        csBeacons.push(beaconTop);
+
+        // Grand Illuminated Entrance Arch at base
+        const archGeo = new THREE.BoxGeometry(8, 5, 1.2);
+        const archMat = new THREE.MeshStandardMaterial({ 
+          color: 0x030712, 
+          emissive: 0x00E5FF, 
+          emissiveIntensity: 0.35,
+          roughness: 0.2
+        });
+        const arch = new THREE.Mesh(archGeo, archMat);
+        arch.position.set(0, 2.5, b.depth / 2 + 0.6);
+        bGroup.add(arch);
+      }
+
       // Holographic Signboard
       const signCanvas = document.createElement('canvas');
       signCanvas.width = 512;
@@ -343,12 +398,12 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         side: THREE.DoubleSide 
       });
       const signMesh = new THREE.Mesh(signGeo, signMat);
-      signMesh.position.set(0, b.height + 1.4, 0);
+      signMesh.position.set(0, b.id === 'fargan-tower' ? 31 : b.height + 1.4, 0);
 
       // Determine building facade and entrance direction
       const isWestSide = b.id === 'roban-alam-lestari' || b.id === 'han-waste' || (b.position[0] <= -20);
       const isEastSide = b.id === 'kavling-morowali' || b.id === 'farghan-digital-marketing' || (b.position[0] >= 20);
-      const isNorthSide = b.id === 'brandpulse' || b.id === 'anti-sobis' || b.id === 'fargan-guard-trading' || (b.position[2] <= -10);
+      const isNorthSide = b.id === 'fargan-tower' || b.id === 'brandpulse' || b.id === 'anti-sobis' || b.id === 'fargan-guard-trading' || (b.position[2] <= -10);
 
       let padOffsetX = 0;
       let padOffsetZ = 0;
@@ -435,14 +490,19 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       // =========================================================
       const npcGroup = new THREE.Group();
 
+      const isCeo = b.id === 'fargan-tower';
       const npcSkinMat = new THREE.MeshStandardMaterial({ color: 0xFAD090, roughness: 0.5 });
-      const npcShirtMat = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.3 });
-      const npcNeonMat = new THREE.MeshStandardMaterial({ 
-        color: b.neonColor, 
-        emissive: b.neonColor, 
-        emissiveIntensity: 0.5 
+      const npcShirtMat = new THREE.MeshStandardMaterial({ 
+        color: isCeo ? 0x091424 : b.color, 
+        roughness: isCeo ? 0.2 : 0.3,
+        metalness: isCeo ? 0.35 : 0
       });
-      const npcPantsMat = new THREE.MeshStandardMaterial({ color: 0x0F172A, roughness: 0.6 });
+      const npcNeonMat = new THREE.MeshStandardMaterial({ 
+        color: isCeo ? 0x00E5FF : b.neonColor, 
+        emissive: isCeo ? 0x00E5FF : b.neonColor, 
+        emissiveIntensity: isCeo ? 0.85 : 0.5 
+      });
+      const npcPantsMat = new THREE.MeshStandardMaterial({ color: 0x070B14, roughness: 0.6 });
 
       // NPC Head with Smile Face
       const npcFaceCanvas = document.createElement('canvas');
@@ -1340,7 +1400,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/85 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold shadow-lg cursor-pointer active:scale-95"
         >
           <Compass className={`w-3.5 h-3.5 text-cyan-400 ${mobileRadarOpen ? 'rotate-180' : ''}`} />
-          <span>{mobileRadarOpen ? 'Tutup Peta ✕' : 'Peta Radar (10)'}</span>
+          <span>{mobileRadarOpen ? 'Tutup Peta ✕' : `Peta Radar (${currentProjects.length})`}</span>
         </button>
       </div>
 
@@ -1354,7 +1414,7 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               <Compass className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
               <span>RADAR KOTA FARGAN</span>
             </div>
-            <span className="text-[10px] text-slate-400">10 KARYA</span>
+            <span className="text-[10px] text-slate-400">{currentProjects.length} GEDUNG</span>
           </div>
 
           <div className="relative w-36 h-36 rounded-xl bg-slate-900/90 border border-cyan-500/30 overflow-hidden flex items-center justify-center">
@@ -1539,7 +1599,11 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                   className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-slate-950 font-black text-lg shadow-lg flex-shrink-0 border border-white/20"
                   style={{ backgroundColor: `#${activeDialogue.neonColor.toString(16).padStart(6, '0')}` }}
                 >
-                  <MessageSquare className="w-5 h-5 text-slate-950" />
+                  {activeDialogue.id === 'fargan-tower' ? (
+                    <span className="text-xl">👑</span>
+                  ) : (
+                    <MessageSquare className="w-5 h-5 text-slate-950" />
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -1603,6 +1667,34 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               </p>
             </div>
 
+            {/* Special Core Capabilities Grid for Fargan Central Tower */}
+            {activeDialogue.id === 'fargan-tower' && (
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" style={{ animationDuration: '4s' }} />
+                  <span>{lang === 'en' ? 'Core Capabilities We Build & Deliver:' : 'Solusi & Jasa yang Bisa Kami Buat:'}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                  <div className="p-2 rounded-xl bg-slate-900/90 border border-cyan-500/25 text-slate-200 flex items-center gap-1.5 shadow-sm">
+                    <span className="text-cyan-400 font-bold">💎</span>
+                    <span className="truncate">{lang === 'en' ? 'Premium Web Design' : 'Website Bisnis Mewah'}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900/90 border border-cyan-500/25 text-slate-200 flex items-center gap-1.5 shadow-sm">
+                    <span className="text-amber-400 font-bold">🤖</span>
+                    <span className="truncate">{lang === 'en' ? 'Smart AI WhatsApp Bot' : 'Fitur Smart & Bot WA AI'}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900/90 border border-cyan-500/25 text-slate-200 flex items-center gap-1.5 shadow-sm">
+                    <span className="text-emerald-400 font-bold">⚡</span>
+                    <span className="truncate">{lang === 'en' ? 'Custom SaaS & Cloud' : 'Software SaaS Kustom'}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900/90 border border-cyan-500/25 text-slate-200 flex items-center gap-1.5 shadow-sm">
+                    <span className="text-purple-400 font-bold">🌐</span>
+                    <span className="truncate">{lang === 'en' ? '3D Metaverse Web' : 'Showroom 3D Digital'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
               <button
@@ -1612,18 +1704,31 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
                 {lang === 'en' ? '📋 Building Specs' : '📋 Spesifikasi Gedung'}
               </button>
 
-              <a
-                href={activeDialogue.url}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2 rounded-xl font-black text-xs text-slate-950 flex items-center gap-1.5 shadow-lg transition-all active:scale-95 hover:scale-105"
-                style={{
-                  background: `linear-gradient(135deg, #${activeDialogue.neonColor.toString(16).padStart(6, '0')}, #38bdf8)`
-                }}
-              >
-                <span>{lang === 'en' ? 'OPEN LIVE SITE ➔' : 'BUKA WEBSITE LIVE ➔'}</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              {activeDialogue.id === 'fargan-tower' ? (
+                <a
+                  href="https://wa.me/6281295175618?text=Halo%20CEO%20Al%20Fargan,%20saya%20tertarik%20berkonsultasi%20mengenai%20pembuatan%20website%20premium%20/%20fitur%20smart%20untuk%20bisnis%20saya..."
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => soundEngine.playJump()}
+                  className="px-4 py-2 rounded-xl font-black text-xs text-slate-950 flex items-center gap-1.5 shadow-xl transition-all active:scale-95 hover:scale-105 bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 border border-emerald-200/50 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current text-slate-950" />
+                  <span>{lang === 'en' ? '💬 Consult Business via WA ➔' : '💬 Konsultasi Ide Bisnis via WA ➔'}</span>
+                </a>
+              ) : (
+                <a
+                  href={activeDialogue.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2 rounded-xl font-black text-xs text-slate-950 flex items-center gap-1.5 shadow-lg transition-all active:scale-95 hover:scale-105"
+                  style={{
+                    background: `linear-gradient(135deg, #${activeDialogue.neonColor.toString(16).padStart(6, '0')}, #38bdf8)`
+                  }}
+                >
+                  <span>{lang === 'en' ? 'OPEN LIVE SITE ➔' : 'BUKA WEBSITE LIVE ➔'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
 
               <button
                 onClick={() => {
@@ -1662,43 +1767,9 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* COMPACT CAMERA ROTATE & COMPASS HELPER + QUICK TOGGLES (TOP-RIGHT) */}
+      {/* COMPACT CAMERA ROTATE & COMPASS HELPER (TOP-RIGHT) */}
       {/* ========================================================= */}
       <div className="absolute top-14 right-3 sm:top-16 sm:right-60 z-30 pointer-events-auto flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-cyan-500/30 shadow-xl">
-        {onToggleMode && (
-          <button
-            onClick={onToggleMode}
-            className="p-1.5 rounded-full bg-slate-900/90 text-slate-300 hover:text-white transition-colors cursor-pointer shadow border border-white/5 active:scale-95"
-            title={mode === 'day' ? `${t.nightMode}` : `${t.dayMode}`}
-          >
-            {mode === 'day' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-cyan-400" />}
-          </button>
-        )}
-
-        {onToggleGender && (
-          <button
-            onClick={onToggleGender}
-            className="px-2 py-1 rounded-full bg-slate-900/90 text-slate-300 hover:text-white transition-colors cursor-pointer text-[10px] font-bold border border-white/5 flex items-center gap-0.5 active:scale-95"
-            title="Ganti Model Karakter"
-          >
-            <span>{gender === 'female' ? '👧' : '👦'}</span>
-            <span className="hidden md:inline text-[9px] font-mono">{gender === 'female' ? t.charFemale : t.charMale}</span>
-          </button>
-        )}
-
-        {onToggleLang && (
-          <button
-            onClick={onToggleLang}
-            className="px-2 py-1 rounded-full bg-slate-900/90 text-slate-300 hover:text-white transition-colors cursor-pointer text-[10px] font-bold border border-white/5 flex items-center gap-0.5 active:scale-95"
-            title="Ganti Bahasa / Toggle Language"
-          >
-            <span>{lang === 'id' ? '🇮🇩' : '🇬🇧'}</span>
-            <span className="text-[9px] font-mono font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
-          </button>
-        )}
-
-        <div className="w-px h-4 bg-white/20 mx-0.5" />
-
         <button
           onClick={() => rotateCameraRef.current?.(-Math.PI / 4)}
           className="p-1.5 rounded-full bg-slate-900/90 text-slate-300 hover:text-white active:bg-cyan-500 active:text-slate-950 transition-colors active:scale-95 cursor-pointer shadow"
