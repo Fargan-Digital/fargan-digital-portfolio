@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#040914"/>
+      <stop offset="50%" stop-color="#081426"/>
+      <stop offset="100%" stop-color="#020611"/>
+    </linearGradient>
+
+    <!-- Neon Circuit Gradient -->
+    <linearGradient id="neonGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="50%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <!-- Electric Amber Node Gradient (Digital Spark) -->
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+
+    <!-- Deep Tech Glow Filters -->
+    <filter id="intenseGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="coreGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Dark Shield Background -->
+  <rect width="500" height="500" rx="36" fill="url(#bgGrad2)" />
+
+  <!-- Orbiting Cyber Rings (Portal Gate / Dimension Loop) -->
+  <circle cx="250" cy="205" r="145" fill="none" stroke="#00F5FF" stroke-width="1.5" stroke-dasharray="12 16" opacity="0.25" />
+  <circle cx="250" cy="205" r="125" fill="none" stroke="#38BDF8" stroke-width="1" stroke-dasharray="4 8" opacity="0.3" />
+
+  <!-- Diagonal Tech Slits / Speed Bars -->
+  <line x1="120" y1="205" x2="90" y2="205" stroke="#00F5FF" stroke-width="3" opacity="0.6"/>
+  <line x1="380" y1="205" x2="410" y2="205" stroke="#00F5FF" stroke-width="3" opacity="0.6"/>
+  <line x1="250" y1="50" x2="250" y2="30" stroke="#00F5FF" stroke-width="3" opacity="0.6"/>
+
+  <!-- ==============================================
+       THE QUANTUM "F" PORTAL BEAM
+       A sleek, high-speed geometric ribbon forming "F"
+       with dynamic forward arrows (Forward Innovation)
+       ============================================== -->
+  <g transform="translate(0, -10)">
+    <!-- Backshadow Glow of F -->
+    <path d="M 175 95 
+             L 345 95 
+             L 310 155 
+             L 245 155 
+             L 245 185 
+             L 320 185 
+             L 285 245 
+             L 245 245 
+             L 245 330 
+             L 175 330 Z" 
+          fill="#00F5FF" opacity="0.2" filter="url(#intenseGlow)" />
+
+    <!-- Main Solid Monogram "F" in Cyber Cutout Form -->
+    <!-- Vertical Spine & Top Bar Combined as Monolith Ribbon -->
+    <path d="M 170 90 
+             L 340 90 
+             L 305 150 
+             L 240 150 
+             L 240 180 
+             L 310 180 
+             L 278 238 
+             L 240 238 
+             L 240 330 
+             L 170 330 Z" 
+          fill="url(#neonGlowGrad)" 
+          stroke="#FFFFFF" 
+          stroke-width="2.5" 
+          stroke-linejoin="round"
+          filter="url(#coreGlow)" />
+
+    <!-- Sharp Bevel Highlight inside F -->
+    <path d="M 170 90 
+             L 340 90 
+             L 305 110 
+             L 195 110 
+             L 195 330 
+             L 170 330 Z" 
+          fill="#FFFFFF" 
+          opacity="0.35" />
+
+    <!-- Futuristic Chevron Accent / Dimension Key (Arrow pointing forward/right) -->
+    <polygon points="315,90 355,90 320,150 280,150" fill="#38BDF8" opacity="0.9" />
+    <polygon points="285,180 325,180 293,238 253,238" fill="#38BDF8" opacity="0.9" />
+
+    <!-- Glowing Quantum Core Particles / Energy Nodes -->
+    <circle cx="340" cy="90" r="7" fill="#FFFFFF" filter="url(#intenseGlow)" />
+    <circle cx="310" cy="180" r="6" fill="#00F5FF" filter="url(#intenseGlow)" />
+    <circle cx="170" cy="330" r="6" fill="#38BDF8" filter="url(#intenseGlow)" />
+
+    <!-- Dynamic Speed Streak lines behind F -->
+    <line x1="140" y1="120" x2="160" y2="120" stroke="#00F5FF" stroke-width="4" stroke-linecap="round" />
+    <line x1="130" y1="210" x2="160" y2="210" stroke="#00F5FF" stroke-width="4" stroke-linecap="round" />
+    <line x1="145" y1="300" x2="160" y2="300" stroke="#00F5FF" stroke-width="4" stroke-linecap="round" />
+  </g>
+
+  <!-- BRAND NAME & SLOGAN -->
+  <text x="250" y="415" 
+        font-family="system-ui, -apple-system, sans-serif" 
+        font-size="36" 
+        font-weight="900" 
+        letter-spacing="10" 
+        fill="#FFFFFF" 
+        text-anchor="middle">FARGAN</text>
+
+  <text x="250" y="445" 
+        font-family="monospace, sans-serif" 
+        font-size="13" 
+        font-weight="700" 
+        letter-spacing="6" 
+        fill="#00F5FF" 
+        text-anchor="middle">DIGITAL CREATIVE</text>
+
+  <!-- Futuristic Status Badge -->
+  <g transform="translate(250, 468)">
+    <rect x="-85" y="-12" width="170" height="18" rx="9" fill="#0A182E" stroke="#00F5FF" stroke-width="1"/>
+    <circle cx="-68" cy="-3" r="3" fill="#10B981"/>
+    <text x="-58" y="1" font-family="monospace" font-size="9" font-weight="700" fill="#38BDF8" letter-spacing="1.5">METAVERSE ACTIVE</text>
+  </g>
+</svg>

@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Background Dark Gradient -->
+    <linearGradient id="bgGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020612"/>
+      <stop offset="50%" stop-color="#071022"/>
+      <stop offset="100%" stop-color="#010308"/>
+    </linearGradient>
+
+    <!-- Super-Luminous Electric Gradient -->
+    <linearGradient id="fInfiniteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="35%" stop-color="#38BDF8"/>
+      <stop offset="70%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+
+    <linearGradient id="glowGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+
+    <filter id="megaGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="crispGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="500" height="500" rx="36" fill="url(#bgGrad4)" />
+
+  <!-- Ambient Glow Blob in Background -->
+  <circle cx="250" cy="200" r="130" fill="#00F5FF" opacity="0.08" filter="url(#megaGlow)" />
+  <circle cx="280" cy="220" r="100" fill="#6366F1" opacity="0.07" filter="url(#megaGlow)" />
+
+  <!-- Digital Radar Crosshairs -->
+  <circle cx="250" cy="200" r="140" fill="none" stroke="#1E293B" stroke-width="1.5" />
+  <circle cx="250" cy="200" r="110" fill="none" stroke="#00F5FF" stroke-width="1" stroke-dasharray="3 9" opacity="0.3" />
+
+  <!-- ==============================================
+       THE "INFINITY F" (METAVERSE HORIZON)
+       Continuous geometric ribbon looping into the letter "F"
+       Symbolizes: Metaverse without limits, AI continuous learning,
+       and supreme modern tech credibility.
+       ============================================== -->
+  <g transform="translate(0, -10)">
+    <!-- Ambient Shadow Ribbon -->
+    <path d="M 180 320 
+             L 180 120 
+             C 180 85, 240 75, 290 75
+             L 345 75 
+             C 365 75, 365 115, 345 115
+             L 245 115 
+             L 245 170 
+             L 320 170 
+             C 340 170, 340 210, 320 210
+             L 245 210 
+             L 245 320 
+             Z" 
+          fill="none" 
+          stroke="#00F5FF" 
+          stroke-width="32" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          opacity="0.15"
+          filter="url(#megaGlow)" />
+
+    <!-- Main Solid Infinity Ribbon "F" -->
+    <!-- Stem & Top Bar -->
+    <path d="M 180 320 
+             L 180 115 
+             C 180 85, 215 80, 250 80
+             L 340 80" 
+          fill="none" 
+          stroke="url(#fInfiniteGrad)" 
+          stroke-width="26" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          filter="url(#crispGlow)" />
+
+    <!-- Middle Bar of F (Floating Quantum Parallel) -->
+    <path d="M 180 195 
+             L 305 195" 
+          fill="none" 
+          stroke="url(#glowGlow)" 
+          stroke-width="24" 
+          stroke-linecap="round" 
+          filter="url(#crispGlow)" />
+
+    <!-- Top Core Glow Dot -->
+    <circle cx="340" cy="80" r="6" fill="#FFFFFF" filter="url(#crispGlow)" />
+    <!-- Mid Core Glow Dot -->
+    <circle cx="305" cy="195" r="5.5" fill="#00F5FF" filter="url(#crispGlow)" />
+    <!-- Bottom Anchor Dot -->
+    <circle cx="180" cy="320" r="5" fill="#6366F1" filter="url(#crispGlow)" />
+
+    <!-- Inner Neon Core Wire -->
+    <path d="M 180 300 
+             L 180 115 
+             C 180 95, 205 92, 235 92
+             L 330 92" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="4" 
+          stroke-linecap="round" 
+          opacity="0.8" />
+          
+    <line x1="195" y1="195" x2="295" y2="195" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" opacity="0.85" />
+  </g>
+
+  <!-- BRAND NAME & BADGE -->
+  <text x="250" y="415" 
+        font-family="system-ui, -apple-system, sans-serif" 
+        font-size="36" 
+        font-weight="900" 
+        letter-spacing="10" 
+        fill="#FFFFFF" 
+        text-anchor="middle">FARGAN</text>
+
+  <text x="250" y="445" 
+        font-family="monospace, sans-serif" 
+        font-size="13" 
+        font-weight="700" 
+        letter-spacing="6" 
+        fill="#38BDF8" 
+        text-anchor="middle">DIGITAL CREATIVE</text>
+
+  <!-- Website Address -->
+  <text x="250" y="468" 
+        font-family="monospace, sans-serif" 
+        font-size="10" 
+        font-weight="600" 
+        letter-spacing="3" 
+        fill="#00F5FF" 
+        text-anchor="middle">WWW.ALFARGAN.COM</text>
+</svg>
