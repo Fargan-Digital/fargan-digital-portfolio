@@ -35,13 +35,26 @@ export const translations = {
     stageServices: 'LAYANAN',
     stageContact: 'KONTAK',
 
-    // Stage 1: Lobby
+    // Stage 1: Lobby / Metaverse Welcome Dialogue
     lobbyBadge: 'EXPERIENCE THE DIGITAL REVOLUTION',
     lobbyHeading1: 'Ciptakan Software Cerdas.',
     lobbyHeading2: 'Bangun Skala Bisnis.',
     lobbyBio: 'Halo, saya adalah kreator di balik Fargan Digital AI. Spesialis merancang perangkat lunak kelas industri, arsitektur cloud performa tinggi, dan otomatisasi AI mutakhir untuk pemilik brand & pengusaha.',
     lobbyEnterCity: 'Masuk & Eksplorasi Kota 3D',
     lobbyViewProfile: 'Lihat Profil Karakter',
+    metaverseWelcomeTag: 'AI GUIDE VIRTUAL • METAVERSE FARGAN DIGITAL',
+    metaverseSpeakerTitle: 'Al Fargan Orin (Avatar Digital)',
+    metaverseSpeakerStatus: 'ONLINE • TRANSMISI AKTIF',
+    metaverseGreetingSpeech: 'Selamat datang di Metaverse Portofolio Fargan Digital Creative! Saya adalah avatar digital dari Al Fargan Orin. Di kota 3D ini, seluruh portofolio rekayasa software, aplikasi SaaS, dan otomasi AI kami diwujudkan menjadi gedung-gedung kota masa depan yang hidup. Anda dapat berjalan bebas, berdialog langsung dengan staf resepsionis AI di setiap gedung, memeriksa spesifikasi teknologi, dan meluncurkan setiap website secara live.',
+    metaverseExploreBtn: '🚀 JELAJAHI KOTA METAVERSE FARGAN DIGITAL CREATIVE ➔',
+    metaverseProfileBtn: 'Profil Engineer 👤',
+    metaverseWorksBtn: '10 Gedung Karya 🏢',
+    metaverseServicesBtn: 'Solusi Layanan ⚡',
+    metaverseCityFeaturesTag: 'KAPABILITAS METAVERSE:',
+    metaverseFeature1: '10+ Gedung Karya Interaktif 3D',
+    metaverseFeature2: 'Resepsionis AI Percakapan Real-Time',
+    metaverseFeature3: 'Navigasi Bebas W A S D & Orbit 360°',
+    metaverseFeature4: 'Situs Produksi Live di Cloudflare & Vercel',
 
     // Stage 2: Character
     characterStatus: 'STATUS KARAKTER: ONLINE',
@@ -126,13 +139,26 @@ export const translations = {
     stageServices: 'SERVICES',
     stageContact: 'CONTACT',
 
-    // Stage 1: Lobby
+    // Stage 1: Lobby / Metaverse Welcome Dialogue
     lobbyBadge: 'EXPERIENCE THE DIGITAL REVOLUTION',
     lobbyHeading1: 'Craft Intelligent Software.',
     lobbyHeading2: 'Scale Enterprise Business.',
     lobbyBio: 'Hello, I am the creator behind Fargan Digital AI. Specializing in enterprise-grade software engineering, high-performance cloud architecture, and cutting-edge AI automation for brand owners & entrepreneurs.',
     lobbyEnterCity: 'Enter & Explore 3D City',
     lobbyViewProfile: 'View Character Profile',
+    metaverseWelcomeTag: 'AI VIRTUAL GUIDE • FARGAN DIGITAL METAVERSE',
+    metaverseSpeakerTitle: 'Al Fargan Orin (Digital Avatar)',
+    metaverseSpeakerStatus: 'ONLINE • LIVE TRANSMISSION',
+    metaverseGreetingSpeech: 'Welcome to the Fargan Digital Creative Metaverse Portfolio! I am the digital avatar of Al Fargan Orin. In this 3D virtual world, our entire software engineering, SaaS applications, and AI automation portfolio are manifested as living futuristic city buildings. You can freely explore, chat directly with AI receptionists at each building, inspect technical architecture, and launch live production websites.',
+    metaverseExploreBtn: '🚀 EXPLORE FARGAN DIGITAL CREATIVE METAVERSE ➔',
+    metaverseProfileBtn: 'Engineer Profile 👤',
+    metaverseWorksBtn: '10 Building Works 🏢',
+    metaverseServicesBtn: 'Solutions & Services ⚡',
+    metaverseCityFeaturesTag: 'METAVERSE CAPABILITIES:',
+    metaverseFeature1: '10+ Interactive 3D Architecture Buildings',
+    metaverseFeature2: 'Real-Time Conversational AI Receptionists',
+    metaverseFeature3: 'Free W A S D Walk & 360° Orbit Navigation',
+    metaverseFeature4: 'Live Production Deployments on Cloudflare & Vercel',
 
     // Stage 2: Character
     characterStatus: 'CHARACTER STATUS: ONLINE',

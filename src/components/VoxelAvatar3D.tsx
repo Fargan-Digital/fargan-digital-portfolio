@@ -31,7 +31,7 @@ export const VoxelAvatar3D: React.FC<VoxelAvatar3DProps> = ({
       0.1,
       100
     );
-    camera.position.set(0, 2, 7.5);
+    camera.position.set(0, 0.1, 7.2);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
@@ -55,7 +55,7 @@ export const VoxelAvatar3D: React.FC<VoxelAvatar3DProps> = ({
     const gridColor1 = isDay ? 0x0284c7 : 0x00A2FF;
     const gridColor2 = isDay ? 0x94a3b8 : 0x1A2A40;
     const grid = new THREE.GridHelper(24, 24, gridColor1, gridColor2);
-    grid.position.y = -1.6;
+    grid.position.y = -2.48;
     scene.add(grid);
 
     // 4. Build Roblox Voxel Avatar Group
