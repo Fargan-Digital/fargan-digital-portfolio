@@ -406,9 +406,10 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       signMesh.position.set(0, b.id === 'fargan-tower' ? 31 : b.height + 1.4, 0);
 
       // Determine building facade and entrance direction
-      const isWestSide = b.id === 'roban-alam-lestari' || b.id === 'han-waste' || (b.position[0] <= -25);
-      const isEastSide = b.id === 'kavling-morowali' || b.id === 'fargan-digital-marketing' || (b.position[0] >= 25);
-      const isNorthSide = b.id === 'fargan-tower' || b.id === 'brandpulse' || b.id === 'anti-sobis' || b.id === 'fargan-guard-trading' || b.id === 'fargan-butik' || (b.position[2] <= -10);
+      const isNorthTower = b.id === 'fargan-tower';
+      const isWestSide = b.position[0] <= -20;
+      const isEastSide = b.position[0] >= 20;
+      const isSouthSide = b.position[2] >= 28;
 
       let padOffsetX = 0;
       let padOffsetZ = 0;
@@ -416,31 +417,41 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       let npcOffsetZ = 0;
       let npcRotationY = 0;
 
-      if (isWestSide) {
-        signMesh.rotation.y = Math.PI / 2; // sign faces East toward avenue
+      if (isNorthTower) {
+        // Fargan Tower at [0, 14, -36] faces South down Central Boulevard
+        signMesh.rotation.y = 0;
+        padOffsetZ = b.depth / 2 + 1.5;
+        npcOffsetX = 0;
+        npcOffsetZ = b.depth / 2 + 2.5;
+        npcRotationY = 0; // NPC faces South toward approaching player
+      } else if (isWestSide) {
+        // West boulevard buildings face East toward Central Boulevard / West Avenue
+        signMesh.rotation.y = Math.PI / 2;
         padOffsetX = b.width / 2 + 1.5;
         npcOffsetX = b.width / 2 + 2.3;
         npcOffsetZ = 0;
         npcRotationY = Math.PI / 2; // NPC stands in front, facing East
       } else if (isEastSide) {
-        signMesh.rotation.y = -Math.PI / 2; // sign faces West toward avenue
+        // East boulevard buildings face West toward Central Boulevard / East Avenue
+        signMesh.rotation.y = -Math.PI / 2;
         padOffsetX = -b.width / 2 - 1.5;
         npcOffsetX = -b.width / 2 - 2.3;
         npcOffsetZ = 0;
         npcRotationY = -Math.PI / 2; // NPC stands in front, facing West
-      } else if (isNorthSide) {
-        signMesh.rotation.y = 0; // sign faces South toward boulevard/crossroad
-        padOffsetZ = b.depth / 2 + 1.5;
-        npcOffsetX = 0;
-        npcOffsetZ = b.depth / 2 + 2.3;
-        npcRotationY = 0; // NPC stands in front, facing South
-      } else {
-        // South buildings (fargan-kopi, hendar-fitness)
-        signMesh.rotation.y = Math.PI; // sign faces North toward crossroad
+      } else if (isSouthSide) {
+        // South buildings (fargan-kopi, hendar-fitness) face North toward Central Plaza
+        signMesh.rotation.y = Math.PI;
         padOffsetZ = -b.depth / 2 - 1.5;
         npcOffsetX = 0;
         npcOffsetZ = -b.depth / 2 - 2.3;
         npcRotationY = Math.PI; // NPC stands in front, facing North
+      } else {
+        // Default North-facing buildings
+        signMesh.rotation.y = 0;
+        padOffsetZ = b.depth / 2 + 1.5;
+        npcOffsetX = 0;
+        npcOffsetZ = b.depth / 2 + 2.3;
+        npcRotationY = 0;
       }
       bGroup.add(signMesh);
 
@@ -698,85 +709,118 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
       return car;
     };
 
+    // Flying AI Drone Squad in city skyline
+    const createSkyDrone = (accentColor: number, height: number, speed: number, radiusX: number, radiusZ: number) => {
+      const droneGroup = new THREE.Group();
+      const droneBody = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, 0.22, 0.85),
+        new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.3, metalness: 0.8 })
+      );
+      droneGroup.add(droneBody);
+
+      const ringGeo = new THREE.RingGeometry(0.25, 0.40, 16);
+      const ringMat = new THREE.MeshBasicMaterial({ color: accentColor, side: THREE.DoubleSide });
+      [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]].forEach(([rx, rz]) => {
+        const r = new THREE.Mesh(ringGeo, ringMat);
+        r.rotation.x = Math.PI / 2;
+        r.position.set(rx, 0.1, rz);
+        droneGroup.add(r);
+      });
+
+      const droneLight = new THREE.PointLight(accentColor, 1.8, 16);
+      droneLight.position.set(0, -0.4, 0);
+      droneGroup.add(droneLight);
+
+      scene.add(droneGroup);
+      return { group: droneGroup, height, speed, radiusX, radiusZ };
+    };
+
+    const skyDrones = [
+      createSkyDrone(0x00E5FF, 12, 0.35, 26, 20),
+      createSkyDrone(0xA855F7, 15, -0.28, 20, 24)
+    ];
+
     // Car 1: Central Boulevard Southbound (x = 2.0, asphalt road is x in [-4, 4])
     const car1 = createHoverCar(0x0F2838, 0x00E5FF);
     car1.position.set(2.0, 0, -25);
     scene.add(car1);
-    hoverCars.push({ mesh: car1, axis: 'z', dir: 1, speed: 0.28, min: -25, max: 28 });
+    hoverCars.push({ mesh: car1, axis: 'z', dir: 1, speed: 0.32, min: -26, max: 28 });
 
     // Car 2: Central Boulevard Northbound (x = -2.0, asphalt road is x in [-4, 4])
     const car2 = createHoverCar(0x380F28, 0xFF0077);
     car2.position.set(-2.0, 0, 28);
     car2.rotation.y = Math.PI;
     scene.add(car2);
-    hoverCars.push({ mesh: car2, axis: 'z', dir: -1, speed: 0.27, min: -25, max: 28 });
+    hoverCars.push({ mesh: car2, axis: 'z', dir: -1, speed: 0.30, min: -26, max: 28 });
 
-    // Car 3: West Avenue Northbound (x = -21, asphalt road is x in [-24, -18])
-    const car3 = createHoverCar(0x1B381E, 0x10B981);
-    car3.position.set(-21, 0, 30);
-    car3.rotation.y = Math.PI;
+    // Car 3: Central Boulevard Express Southbound (x = 1.0)
+    const car3 = createHoverCar(0x0B2A3B, 0x38BDF8);
+    car3.position.set(1.0, 0, -10);
     scene.add(car3);
-    hoverCars.push({ mesh: car3, axis: 'z', dir: -1, speed: 0.26, min: -34, max: 30 });
+    hoverCars.push({ mesh: car3, axis: 'z', dir: 1, speed: 0.38, min: -26, max: 28 });
 
-    // Car 4: East Avenue Southbound (x = 21, asphalt road is x in [18, 24])
-    const car4 = createHoverCar(0x38280F, 0xF59E0B);
-    car4.position.set(21, 0, -34);
+    // Car 4: West Avenue Northbound Lane 1 (x = -22.2)
+    const car4 = createHoverCar(0x1B381E, 0x10B981);
+    car4.position.set(-22.2, 0, 30);
+    car4.rotation.y = Math.PI;
     scene.add(car4);
-    hoverCars.push({ mesh: car4, axis: 'z', dir: 1, speed: 0.26, min: -34, max: 30 });
+    hoverCars.push({ mesh: car4, axis: 'z', dir: -1, speed: 0.28, min: -34, max: 30 });
 
-    // Car 5: North Crossroad Eastbound (z = -12, asphalt road is z in [-15, -9])
-    const car5 = createHoverCar(0x280F38, 0xA855F7);
-    car5.position.set(-32, 0, -12);
-    car5.rotation.y = Math.PI / 2;
+    // Car 5: West Avenue Southbound Lane 2 (x = -19.8)
+    const car5 = createHoverCar(0x2E1B38, 0xC084FC);
+    car5.position.set(-19.8, 0, -32);
     scene.add(car5);
-    hoverCars.push({ mesh: car5, axis: 'x', dir: 1, speed: 0.25, min: -32, max: 32 });
+    hoverCars.push({ mesh: car5, axis: 'z', dir: 1, speed: 0.27, min: -34, max: 30 });
 
-    // Car 6: South Crossroad Westbound (z = 14, asphalt road is z in [11, 17])
-    const car6 = createHoverCar(0x0C2B38, 0x06B6D4);
-    car6.position.set(32, 0, 14);
-    car6.rotation.y = -Math.PI / 2;
+    // Car 6: East Avenue Southbound Lane 1 (x = 19.8)
+    const car6 = createHoverCar(0x38280F, 0xF59E0B);
+    car6.position.set(19.8, 0, -34);
     scene.add(car6);
-    hoverCars.push({ mesh: car6, axis: 'x', dir: -1, speed: 0.25, min: -32, max: 32 });
+    hoverCars.push({ mesh: car6, axis: 'z', dir: 1, speed: 0.29, min: -34, max: 30 });
 
-    // Flying AI Drone in city skyline
-    const droneGroup = new THREE.Group();
-    const droneBody = new THREE.Mesh(
-      new THREE.BoxGeometry(0.8, 0.22, 0.8),
-      new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.3 })
-    );
-    droneGroup.add(droneBody);
+    // Car 7: East Avenue Northbound Lane 2 (x = 22.2)
+    const car7 = createHoverCar(0x381220, 0xFB7185);
+    car7.position.set(22.2, 0, 28);
+    car7.rotation.y = Math.PI;
+    scene.add(car7);
+    hoverCars.push({ mesh: car7, axis: 'z', dir: -1, speed: 0.26, min: -34, max: 30 });
 
-    const ringGeo = new THREE.RingGeometry(0.25, 0.38, 12);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00E5FF, side: THREE.DoubleSide });
-    [[-0.55, -0.55], [0.55, -0.55], [-0.55, 0.55], [0.55, 0.55]].forEach(([rx, rz]) => {
-      const r = new THREE.Mesh(ringGeo, ringMat);
-      r.rotation.x = Math.PI / 2;
-      r.position.set(rx, 0.1, rz);
-      droneGroup.add(r);
-    });
+    // Car 8: North Crossroad Eastbound (z = -12, asphalt road is z in [-15, -9])
+    const car8 = createHoverCar(0x280F38, 0xA855F7);
+    car8.position.set(-32, 0, -12);
+    car8.rotation.y = Math.PI / 2;
+    scene.add(car8);
+    hoverCars.push({ mesh: car8, axis: 'x', dir: 1, speed: 0.31, min: -34, max: 34 });
 
-    const droneLight = new THREE.PointLight(0x00E5FF, 1.2, 14);
-    droneLight.position.set(0, -0.3, 0);
-    droneGroup.add(droneLight);
+    // Car 9: North Crossroad Westbound (z = -10.5)
+    const car9 = createHoverCar(0x0C283B, 0x00E5FF);
+    car9.position.set(32, 0, -10.5);
+    car9.rotation.y = -Math.PI / 2;
+    scene.add(car9);
+    hoverCars.push({ mesh: car9, axis: 'x', dir: -1, speed: 0.29, min: -34, max: 34 });
 
-    droneGroup.position.set(0, 11, 0);
-    scene.add(droneGroup);
+    // Car 10: South Crossroad Westbound (z = 14, asphalt road is z in [11, 17])
+    const car10 = createHoverCar(0x0C2B38, 0x06B6D4);
+    car10.position.set(32, 0, 14);
+    car10.rotation.y = -Math.PI / 2;
+    scene.add(car10);
+    hoverCars.push({ mesh: car10, axis: 'x', dir: -1, speed: 0.30, min: -34, max: 34 });
 
-    // Atmospheric Floating Cyber Sparks
-    const particleCount = 70;
+    // Atmospheric Floating Cyber Sparks & Data Packets (bustling metaverse ambiance)
+    const particleCount = 140;
     const particleGeo = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i++) {
-      particlePositions[i * 3] = (Math.random() - 0.5) * 80;
-      particlePositions[i * 3 + 1] = 0.5 + Math.random() * 12;
-      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+      particlePositions[i * 3] = (Math.random() - 0.5) * 85;
+      particlePositions[i * 3 + 1] = 0.5 + Math.random() * 14;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 85;
     }
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
     const particleMat = new THREE.PointsMaterial({
       color: 0x00E5FF,
-      size: 0.25,
+      size: 0.28,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.75
     });
     const particles = new THREE.Points(particleGeo, particleMat);
     scene.add(particles);
@@ -1297,11 +1341,13 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
         car.mesh.position.y = 0.45 + Math.sin(elapsedTime * 6 + car.speed * 10) * 0.05;
       });
 
-      // Animate Living City: Flying AI Drone
-      droneGroup.position.x = Math.sin(elapsedTime * 0.35) * 24;
-      droneGroup.position.z = Math.cos(elapsedTime * 0.35) * 19;
-      droneGroup.position.y = 11 + Math.sin(elapsedTime * 1.5) * 0.6;
-      droneGroup.rotation.y = elapsedTime * 0.35 + Math.PI / 2;
+      // Animate Living City: Flying AI Drones Squad
+      skyDrones.forEach((drone, idx) => {
+        drone.group.position.x = Math.sin(elapsedTime * drone.speed + idx * Math.PI) * drone.radiusX;
+        drone.group.position.z = Math.cos(elapsedTime * drone.speed + idx * Math.PI) * drone.radiusZ;
+        drone.group.position.y = drone.height + Math.sin(elapsedTime * 1.5 + idx) * 0.6;
+        drone.group.rotation.y = elapsedTime * drone.speed + Math.PI / 2;
+      });
 
       // Animate Living City: Floating Cyber Sparks
       const posAttr = particleGeo.attributes.position as THREE.BufferAttribute;

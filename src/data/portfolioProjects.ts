@@ -78,7 +78,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Enterprise SaaS • Production Ready',
     categoryEn: 'Enterprise SaaS • Production Ready',
     categoryGroup: 'enterprise',
-    position: [-11, 5, -22],
+    position: [-32, 5, -24],
     color: 0x0F1B29,
     neonColor: 0x00A2FF, // Electric Cyan
     height: 10,
@@ -115,7 +115,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'AI Cyber Security & Fraud Prevention',
     categoryEn: 'AI Cyber Security & Fraud Prevention',
     categoryGroup: 'fintech_security',
-    position: [-31, 4.5, -22],
+    position: [-32, 4.5, -6],
     color: 0x220A16,
     neonColor: 0xFF0055, // Alert Magenta Red
     height: 9,
@@ -150,7 +150,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'FinTech & Trading Intelligence',
     categoryEn: 'FinTech & Trading Intelligence',
     categoryGroup: 'fintech_security',
-    position: [11, 4.5, -22],
+    position: [32, 4.5, -24],
     color: 0x06150E,
     neonColor: 0x00FF66, // Matrix Green
     height: 9,
@@ -185,7 +185,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Corporate Enterprise B2B',
     categoryEn: 'Corporate Enterprise B2B',
     categoryGroup: 'corporate_b2b',
-    position: [-31, 4, 1],
+    position: [-32, 4, 10],
     color: 0x0B231B,
     neonColor: 0x10B981, // Emerald Green
     height: 8,
@@ -220,7 +220,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Industrial Oil & Drilling Logistics',
     categoryEn: 'Industrial Oil & Drilling Logistics',
     categoryGroup: 'corporate_b2b',
-    position: [-31, 4, 25],
+    position: [-32, 4, 26],
     color: 0x15220A,
     neonColor: 0x84CC16, // Industrial Lime
     height: 8,
@@ -255,7 +255,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Real Estate & Property Landing Page',
     categoryEn: 'Real Estate & Property Landing Page',
     categoryGroup: 'property_agency',
-    position: [31, 4, 1],
+    position: [32, 4, -6],
     color: 0x241A0B,
     neonColor: 0xF59E0B, // Amber Gold
     height: 8,
@@ -290,7 +290,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Digital Agency & Conversion Growth',
     categoryEn: 'Digital Agency & Conversion Growth',
     categoryGroup: 'property_agency',
-    position: [31, 4, 25],
+    position: [32, 4, 10],
     color: 0x1A0D2E,
     neonColor: 0xA855F7, // Electric Purple
     height: 8,
@@ -318,41 +318,6 @@ export const portfolioProjects: CityBuilding[] = [
     dialogueTextEn: 'Want a website that actively generates revenue instead of just looking pretty? Fargan Digital Marketing builds turnkey web machines equipped with hypnotic conversion copy, blazing speed, and automated sales closing. Check out our agency portfolio!'
   },
   {
-    id: 'fargan-kopi',
-    name: 'Fargan Kopi',
-    subtitle: 'Ngopi Bareng? Di Mana Ajah Boleh! — F&B Coffee Commerce',
-    subtitleEn: 'Coffee Anywhere, Anytime! — Smart F&B Hyperlocal Quick Commerce',
-    category: 'F&B Brand & Quick Commerce',
-    categoryEn: 'F&B Brand & Quick Commerce',
-    categoryGroup: 'consumer_lifestyle',
-    position: [-11, 3.5, 25],
-    color: 0x251408,
-    neonColor: 0xD97706, // Caramel Amber
-    height: 7,
-    width: 7.5,
-    depth: 7,
-    url: 'https://fargan-kopi.pages.dev/',
-    badge: 'F&B BRAND COMMERCE',
-    badgeEn: 'F&B BRAND COMMERCE',
-    desc: 'Platform digital brand F&B modern untuk pemesanan kopi susu aren, kopi kemasan cup harian, hingga botol 1 liter. Menampilkan pengalaman visual menu interaktif yang menggugah selera.',
-    descEn: 'Modern F&B brand commerce platform integrating artisanal palm sugar coffee ordering, on-demand cup deliveries, 1-liter party bottles, and a smart cloud kitchen POS engine.',
-    features: [
-      'Menu interaktif kopi artisan & varian susu gula aren',
-      'Pemesanan takeaway & opsi literan untuk kantor/rumah',
-      'Antarmuka mobile-first responsif dengan checkout ringkas'
-    ],
-    featuresEn: [
-      'Interactive artisan coffee menu with palm sugar signature blends',
-      'On-demand takeaway & 1-liter party bottles for home or office',
-      'Mobile-first ordering interface with swift, frictionless checkout'
-    ],
-    npcName: 'Maya Barista',
-    npcRole: '☕ Barista & AI Guide — Fargan Kopi',
-    npcRoleEn: '☕ Barista & AI Guide — Fargan Kopi',
-    dialogueText: 'Halo! Fargan Kopi adalah software cloud kitchen hyperlocal. Mesin yang terintegrasi antara Customer - Mitra - Owner. Lengkap dengan mesin kasir yang smart + fitur "Profesor Perkopian". Silakan kunjungi linknya untuk mencicipi kopi lezat kami!',
-    dialogueTextEn: 'Hello! Fargan Kopi is a hyperlocal cloud kitchen software engine connecting Customers, Outlets, and Owners. Featuring a smart cloud POS and our interactive "Coffee Professor" blend guide. Click the link to explore our digital coffee universe!'
-  },
-  {
     id: 'fargan-butik',
     name: 'Fargan Butik',
     subtitle: 'Desain Butik Busana Muslim & Fashion Online Rasa Premium',
@@ -360,7 +325,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Fashion & Luxury E-Commerce',
     categoryEn: 'Fashion & Luxury E-Commerce',
     categoryGroup: 'consumer_lifestyle',
-    position: [31, 3.5, -22],
+    position: [32, 3.5, 26],
     color: 0x280D1C,
     neonColor: 0xEC4899, // Hot Pink Rose
     height: 7,
@@ -388,6 +353,41 @@ export const portfolioProjects: CityBuilding[] = [
     dialogueTextEn: 'Welcome to Fargan Butik! We showcase premium modest women’s fashion with a high-end luxury magazine aesthetic, an exclusive designer catalog, and personal styling appointments. Click below to experience our digital boutique!'
   },
   {
+    id: 'fargan-kopi',
+    name: 'Fargan Kopi',
+    subtitle: 'Ngopi Bareng? Di Mana Ajah Boleh! — F&B Coffee Commerce',
+    subtitleEn: 'Coffee Anywhere, Anytime! — Smart F&B Hyperlocal Quick Commerce',
+    category: 'F&B Brand & Quick Commerce',
+    categoryEn: 'F&B Brand & Quick Commerce',
+    categoryGroup: 'consumer_lifestyle',
+    position: [-10, 3.5, 34],
+    color: 0x251408,
+    neonColor: 0xD97706, // Caramel Amber
+    height: 7,
+    width: 7.5,
+    depth: 7,
+    url: 'https://fargan-kopi.pages.dev/',
+    badge: 'F&B BRAND COMMERCE',
+    badgeEn: 'F&B BRAND COMMERCE',
+    desc: 'Platform digital brand F&B modern untuk pemesanan kopi susu aren, kopi kemasan cup harian, hingga botol 1 liter. Menampilkan pengalaman visual menu interaktif yang menggugah selera.',
+    descEn: 'Modern F&B brand commerce platform integrating artisanal palm sugar coffee ordering, on-demand cup deliveries, 1-liter party bottles, and a smart cloud kitchen POS engine.',
+    features: [
+      'Menu interaktif kopi artisan & varian susu gula aren',
+      'Pemesanan takeaway & opsi literan untuk kantor/rumah',
+      'Antarmuka mobile-first responsif dengan checkout ringkas'
+    ],
+    featuresEn: [
+      'Interactive artisan coffee menu with palm sugar signature blends',
+      'On-demand takeaway & 1-liter party bottles for home or office',
+      'Mobile-first ordering interface with swift, frictionless checkout'
+    ],
+    npcName: 'Maya Barista',
+    npcRole: '☕ Barista & AI Guide — Fargan Kopi',
+    npcRoleEn: '☕ Barista & AI Guide — Fargan Kopi',
+    dialogueText: 'Halo! Fargan Kopi adalah software cloud kitchen hyperlocal. Mesin yang terintegrasi antara Customer - Mitra - Owner. Lengkap dengan mesin kasir yang smart + fitur "Profesor Perkopian". Silakan kunjungi linknya untuk mencicipi kopi lezat kami!',
+    dialogueTextEn: 'Hello! Fargan Kopi is a hyperlocal cloud kitchen software engine connecting Customers, Outlets, and Owners. Featuring a smart cloud POS and our interactive "Coffee Professor" blend guide. Click the link to explore our digital coffee universe!'
+  },
+  {
     id: 'hendar-fitness',
     name: 'Hendar Fitness Coach',
     subtitle: 'Personal Trainer Bersertifikat & Atlet Kontes Surabaya',
@@ -395,7 +395,7 @@ export const portfolioProjects: CityBuilding[] = [
     category: 'Personal Branding & Health Fitness',
     categoryEn: 'Personal Branding & Health Fitness',
     categoryGroup: 'consumer_lifestyle',
-    position: [11, 3.5, 25],
+    position: [10, 3.5, 34],
     color: 0x211208,
     neonColor: 0xEA580C, // Hyper Orange
     height: 7,

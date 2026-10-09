@@ -54,6 +54,10 @@ class SoundEngine {
     }
   }
 
+  public unmute(): void {
+    this.setMuted(false);
+  }
+
   public toggleMute(): boolean {
     this.setMuted(!this.isMuted);
     return !this.isMuted;

@@ -464,6 +464,10 @@ export function App() {
 
                 <button
                   onClick={() => {
+                    soundEngine.unlock();
+                    soundEngine.unmute();
+                    soundEngine.startBgm();
+                    setSoundEnabled(true);
                     setViewMode('city');
                     playSfx(600, 'triangle');
                   }}
@@ -573,6 +577,10 @@ export function App() {
                     <div className="space-y-2 pt-1">
                       <button
                         onClick={() => {
+                          soundEngine.unlock();
+                          soundEngine.unmute();
+                          soundEngine.startBgm();
+                          setSoundEnabled(true);
                           setViewMode('city');
                           playSfx(700, 'sine');
                         }}
