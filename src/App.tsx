@@ -36,13 +36,18 @@ import {
 } from 'lucide-react';
 
 export function App() {
-  const [viewMode, setViewMode] = useState<'city' | 'cinematic' | 'alfarghan'>('city');
+  // Default to cinematic stage presentation for super-cool intro welcoming
+  const [viewMode, setViewMode] = useState<'city' | 'cinematic' | 'alfarghan'>('cinematic');
   const [projects, setProjects] = useState<CityBuilding[]>(projectStorage.getProjects());
   const [currentStage, setCurrentStage] = useState<number>(0);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [selectedBuilding, setSelectedBuilding] = useState<CityBuilding | null>(null);
   const [targetBuildingId, setTargetBuildingId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Typewriter intro text animation state
+  const [typedIntroSpeech, setTypedIntroSpeech] = useState<string>('');
+  const [isIntroTypingDone, setIsIntroTypingDone] = useState<boolean>(false);
 
   // Persistence States: Language, Day/Night Mode, Avatar Gender
   const [lang, setLang] = useState<Language>(() => {
@@ -135,6 +140,35 @@ export function App() {
       window.removeEventListener('keydown', handleFirstInteraction);
     };
   }, [soundEnabled]);
+
+  // Handle Typewriter effect for Stage 0 Welcoming Dialogue with retro click SFX
+  useEffect(() => {
+    if (viewMode !== 'cinematic' || currentStage !== 0) {
+      setTypedIntroSpeech(t.metaverseGreetingSpeech);
+      setIsIntroTypingDone(true);
+      return;
+    }
+
+    const fullSpeech = t.metaverseGreetingSpeech;
+    let charIdx = 0;
+    setTypedIntroSpeech('');
+    setIsIntroTypingDone(false);
+
+    const timer = setInterval(() => {
+      charIdx++;
+      if (charIdx <= fullSpeech.length) {
+        setTypedIntroSpeech(fullSpeech.slice(0, charIdx));
+        if (soundEnabled && (charIdx % 2 === 0 || fullSpeech[charIdx - 1] === ' ')) {
+          soundEngine.playTypewriterBlip();
+        }
+      } else {
+        setIsIntroTypingDone(true);
+        clearInterval(timer);
+      }
+    }, 22);
+
+    return () => clearInterval(timer);
+  }, [viewMode, currentStage, lang, soundEnabled, t.metaverseGreetingSpeech]);
 
   const handleBuildingSelect = useCallback((b: CityBuilding) => {
     setSelectedBuilding(b);
@@ -250,8 +284,8 @@ export function App() {
             {/* Topbar HUD */}
             <header className="absolute top-0 left-0 right-0 z-40 px-2 sm:px-5 py-2 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
               <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-600 flex items-center justify-center font-black text-white text-xs shadow-lg shadow-red-600/30 border border-red-400/50 flex-shrink-0">
-                  F
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900/90 flex items-center justify-center p-1 shadow-lg shadow-cyan-500/20 border border-cyan-400/40 flex-shrink-0">
+                  <img src="/logo.svg" alt="Fargan Logo" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1 sm:gap-1.5">
@@ -366,8 +400,8 @@ export function App() {
             {/* Topbar HUD in Cinematic Mode */}
             <header className="relative z-40 w-full px-2 sm:px-5 py-2 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center font-black text-white text-xs border border-red-400/50 flex-shrink-0">
-                  F
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900/90 flex items-center justify-center p-1 shadow-lg shadow-cyan-500/20 border border-cyan-400/40 flex-shrink-0">
+                  <img src="/logo.svg" alt="Fargan Logo" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1 sm:gap-1.5">
@@ -483,13 +517,30 @@ export function App() {
                     </div>
 
                     {/* Speech Dialogue Bubble from Character */}
-                    <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-cyan-500/30 shadow-inner space-y-2 relative">
-                      <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>{t.metaverseSpeakerTitle}:</span>
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-cyan-500/40 shadow-inner space-y-2 relative">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{t.metaverseSpeakerTitle}:</span>
+                        </div>
+                        {!isIntroTypingDone && (
+                          <button
+                            onClick={() => {
+                              setTypedIntroSpeech(t.metaverseGreetingSpeech);
+                              setIsIntroTypingDone(true);
+                              soundEngine.playTypewriterBlip();
+                            }}
+                            className="text-[10px] font-mono text-cyan-300 hover:text-white px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 transition-all cursor-pointer"
+                          >
+                            Skip ➔
+                          </button>
+                        )}
                       </div>
-                      <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
-                        "{t.metaverseGreetingSpeech}"
+                      <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-sans min-h-[72px]">
+                        "{typedIntroSpeech}"
+                        {!isIntroTypingDone && (
+                          <span className="inline-block w-1.5 h-3.5 ml-1 bg-cyan-400 animate-pulse align-middle" />
+                        )}
                       </p>
                     </div>
 
