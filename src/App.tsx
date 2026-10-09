@@ -397,8 +397,26 @@ export function App() {
           <div className="relative w-full h-full flex flex-col justify-between overflow-hidden">
             <DustCanvas />
 
+            {/* Ambient High-Tech Fargan Logo Backdrop Watermark */}
+            <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden">
+              <div className="relative w-[280px] h-[280px] sm:w-[480px] sm:h-[480px] md:w-[600px] md:h-[600px] flex items-center justify-center">
+                {/* Cyberpunk Radial Glow Rings */}
+                <div className="absolute inset-0 rounded-full bg-cyan-500/15 blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute inset-8 rounded-full bg-indigo-600/15 blur-2xl animate-pulse" style={{ animationDuration: '6s' }} />
+                <div className="absolute w-[90%] h-[90%] rounded-full border border-cyan-400/20 animate-spin" style={{ animationDuration: '40s' }} />
+                <div className="absolute w-[75%] h-[75%] rounded-full border border-dashed border-indigo-400/20 animate-spin" style={{ animationDuration: '60s', animationDirection: 'reverse' }} />
+                
+                {/* Full Iconic Fargan Logo */}
+                <img 
+                  src="/logo.svg" 
+                  alt="Fargan Digital Creative Logo Watermark" 
+                  className="w-3/4 h-3/4 object-contain opacity-20 sm:opacity-25 filter drop-shadow-[0_0_40px_rgba(6,182,212,0.6)] select-none pointer-events-none"
+                />
+              </div>
+            </div>
+
             {/* Topbar HUD in Cinematic Mode */}
-            <header className="relative z-40 w-full px-2 sm:px-5 py-2 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
+            <header className="relative z-40 w-full px-2 sm:px-5 py-1.5 sm:py-3 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900/90 flex items-center justify-center p-1 shadow-lg shadow-cyan-500/20 border border-cyan-400/40 flex-shrink-0">
                   <img src="/logo.svg" alt="Fargan Logo" className="w-full h-full object-contain" />
@@ -480,25 +498,25 @@ export function App() {
             </header>
 
             {/* Stage Presentation Split-Screen Container */}
-            <main className="relative z-30 flex-1 w-full min-h-0 px-3 sm:px-6 py-2 sm:py-3 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 overflow-hidden">
+            <main className="relative z-30 flex-1 w-full min-h-0 px-2.5 sm:px-6 py-1.5 sm:py-3 flex flex-col md:flex-row items-center justify-between gap-2.5 sm:gap-6 overflow-hidden">
               {/* Left Column: 3D Voxel Avatar as Host & Explainer */}
-              <div className="w-full md:w-5/12 h-44 sm:h-56 md:h-full relative flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="w-full md:w-5/12 h-36 sm:h-52 md:h-full relative flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <div className="w-full h-full relative">
                   <VoxelAvatar3D currentStage={currentStage} gender={gender} mode={mode} />
                 </div>
 
                 {/* Floating Avatar Host Nametag & Status Badge */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1 z-10 w-full px-2 text-center">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 border border-cyan-400/40 backdrop-blur-md shadow-lg shadow-cyan-500/20">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-                    <span className="text-[11px] font-mono font-bold text-white tracking-wide truncate">
+                <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-0.5 sm:gap-1 z-10 w-full px-2 text-center">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-950/90 border border-cyan-400/40 backdrop-blur-md shadow-lg shadow-cyan-500/20 max-w-full">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold text-white tracking-wide whitespace-nowrap">
                       {t.metaverseSpeakerTitle}
                     </span>
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
+                    <span className="text-[8px] sm:text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 flex-shrink-0">
                       {gender === 'female' ? t.charFemale : t.charMale}
                     </span>
                   </div>
-                  <div className="text-[9px] font-mono text-cyan-400/80 uppercase tracking-widest">
+                  <div className="text-[8px] sm:text-[9px] font-mono text-cyan-400/80 uppercase tracking-wider whitespace-nowrap">
                     {t.metaverseSpeakerStatus}
                   </div>
                 </div>
@@ -508,23 +526,28 @@ export function App() {
               <div className="w-full md:w-7/12 h-full min-h-0 flex items-center justify-center overflow-y-auto py-1 sm:py-2">
                 {/* STAGE 0: Grand Host Dialogue & Metaverse Entry */}
                 {currentStage === 0 && (
-                  <div className="w-full max-w-xl roblox-panel roblox-panel-glow p-4 sm:p-6 space-y-3.5 sm:space-y-4 animate-fade-in my-auto border-cyan-500/40">
-                    {/* Header Badge */}
+                  <div className="w-full max-w-xl roblox-panel roblox-panel-glow p-3 sm:p-5 space-y-2.5 sm:space-y-4 animate-fade-in my-auto border-cyan-500/40">
+                    {/* Header Badge with Official Brand Logo */}
                     <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                      <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 text-xs font-mono font-bold">
-                        <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-spin" style={{ animationDuration: '4s' }} />
-                        <span>{t.metaverseWelcomeTag}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-lg bg-slate-900 border border-cyan-400/50 p-0.5 flex-shrink-0 shadow-sm shadow-cyan-500/30">
+                          <img src="/logo.svg" alt="Fargan Logo" className="w-full h-full object-contain" />
+                        </div>
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 text-[10px] sm:text-xs font-mono font-bold truncate">
+                          <Sparkles className="w-3 h-3 text-cyan-400 animate-spin flex-shrink-0" style={{ animationDuration: '4s' }} />
+                          <span className="truncate">{t.metaverseWelcomeTag}</span>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+                      <span className="text-[9px] sm:text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 sm:px-2 py-0.5 rounded flex-shrink-0 ml-1">
                         ONLINE LIVE
                       </span>
                     </div>
 
                     {/* Speech Dialogue Bubble from Character */}
-                    <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-cyan-500/40 shadow-inner space-y-2 relative">
+                    <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-cyan-500/40 shadow-inner space-y-1.5 sm:space-y-2 relative">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold">
-                          <MessageSquare className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-cyan-400 text-[11px] sm:text-xs font-mono font-bold">
+                          <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                           <span>{t.metaverseSpeakerTitle}:</span>
                         </div>
                         {!isIntroTypingDone && (
@@ -534,47 +557,47 @@ export function App() {
                               setIsIntroTypingDone(true);
                               soundEngine.playTypewriterBlip();
                             }}
-                            className="text-[10px] font-mono text-cyan-300 hover:text-white px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 transition-all cursor-pointer"
+                            className="text-[9px] sm:text-[10px] font-mono text-cyan-300 hover:text-white px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 transition-all cursor-pointer"
                           >
                             Skip ➔
                           </button>
                         )}
                       </div>
-                      <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-sans min-h-[72px]">
+                      <p className="text-[11px] sm:text-sm text-slate-100 leading-relaxed font-sans min-h-[52px] sm:min-h-[68px]">
                         "{typedIntroSpeech}"
                         {!isIntroTypingDone && (
-                          <span className="inline-block w-1.5 h-3.5 ml-1 bg-cyan-400 animate-pulse align-middle" />
+                          <span className="inline-block w-1.5 h-3 sm:h-3.5 ml-1 bg-cyan-400 animate-pulse align-middle" />
                         )}
                       </p>
                     </div>
 
                     {/* Metaverse Highlights Grid */}
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">
+                    <div className="space-y-1 sm:space-y-1.5">
+                      <div className="text-[9px] sm:text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">
                         {t.metaverseCityFeaturesTag}
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-300">
-                        <div className="p-2 rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
-                          <span className="text-cyan-400 font-bold">🏢</span>
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-mono text-slate-300">
+                        <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
+                          <span className="text-cyan-400 font-bold flex-shrink-0">🏢</span>
                           <span className="truncate">{t.metaverseFeature1}</span>
                         </div>
-                        <div className="p-2 rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
-                          <span className="text-amber-400 font-bold">🤖</span>
+                        <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
+                          <span className="text-amber-400 font-bold flex-shrink-0">🤖</span>
                           <span className="truncate">{t.metaverseFeature2}</span>
                         </div>
-                        <div className="p-2 rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
-                          <span className="text-emerald-400 font-bold">🎮</span>
+                        <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
+                          <span className="text-emerald-400 font-bold flex-shrink-0">🎮</span>
                           <span className="truncate">{t.metaverseFeature3}</span>
                         </div>
-                        <div className="p-2 rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
-                          <span className="text-purple-400 font-bold">⚡</span>
+                        <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-950/70 border border-white/5 flex items-center gap-1.5">
+                          <span className="text-purple-400 font-bold flex-shrink-0">⚡</span>
                           <span className="truncate">{t.metaverseFeature4}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Big Hero WAH Button: Jelajahi Kota Metaverse */}
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-1.5 sm:space-y-2 pt-0.5 sm:pt-1">
                       <button
                         onClick={() => {
                           soundEngine.unlock();
@@ -584,28 +607,28 @@ export function App() {
                           setViewMode('city');
                           playSfx(700, 'sine');
                         }}
-                        className="w-full py-3 sm:py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-400 hover:via-blue-400 hover:to-indigo-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xl shadow-cyan-500/40 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.99] border border-cyan-300/40 tracking-wide uppercase"
+                        className="w-full py-2.5 sm:py-3.5 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-400 hover:via-blue-400 hover:to-indigo-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xl shadow-cyan-500/40 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.99] border border-cyan-300/40 tracking-wide uppercase"
                       >
-                        <Gamepad2 className="w-5 h-5 text-slate-950 animate-bounce" />
-                        <span>{t.metaverseExploreBtn}</span>
+                        <Gamepad2 className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 animate-bounce flex-shrink-0" />
+                        <span className="truncate">{t.metaverseExploreBtn}</span>
                       </button>
 
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                         <button
                           onClick={() => goToStage(1)}
-                          className="py-2 px-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-bold text-[11px] border border-white/10 flex items-center justify-center gap-1 cursor-pointer transition-all hover:border-cyan-400/40 truncate"
+                          className="py-1.5 sm:py-2 px-1 rounded-lg sm:rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-bold text-[10px] sm:text-[11px] border border-white/10 flex items-center justify-center gap-1 cursor-pointer transition-all hover:border-cyan-400/40 truncate"
                         >
                           <span>{t.metaverseProfileBtn}</span>
                         </button>
                         <button
                           onClick={() => goToStage(2)}
-                          className="py-2 px-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-bold text-[11px] border border-white/10 flex items-center justify-center gap-1 cursor-pointer transition-all hover:border-cyan-400/40 truncate"
+                          className="py-1.5 sm:py-2 px-1 rounded-lg sm:rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-bold text-[10px] sm:text-[11px] border border-white/10 flex items-center justify-center gap-1 cursor-pointer transition-all hover:border-cyan-400/40 truncate"
                         >
                           <span>{t.metaverseWorksBtn}</span>
                         </button>
                         <button
                           onClick={() => goToStage(3)}
-                          className="py-2 px-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-bold text-[11px] border border-white/10 flex items-center justify-center gap-1 cursor-pointer transition-all hover:border-cyan-400/40 truncate"
+                          className="py-1.5 sm:py-2 px-1 rounded-lg sm:rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-bold text-[10px] sm:text-[11px] border border-white/10 flex items-center justify-center gap-1 cursor-pointer transition-all hover:border-cyan-400/40 truncate"
                         >
                           <span>{t.metaverseServicesBtn}</span>
                         </button>
@@ -888,13 +911,13 @@ export function App() {
             {/* Stage Dots Pager Bottom Nav */}
             <nav 
               aria-label="Navigasi Pager Stage" 
-              className="relative z-40 w-full px-3 sm:px-5 py-2.5 sm:py-3 border-t border-white/10 bg-slate-950/80 backdrop-blur-md flex items-center justify-between flex-shrink-0"
+              className="relative z-40 w-full px-2.5 sm:px-5 py-2 sm:py-3 border-t border-white/10 bg-slate-950/80 backdrop-blur-md flex items-center justify-between flex-shrink-0 gap-2"
             >
-              <div className="text-[11px] font-mono text-slate-400">
-                STAGE <strong className="text-cyan-400">{currentStage + 1}</strong> / {totalStages}: {stageNames[currentStage]}
+              <div className="text-[10px] sm:text-[11px] font-mono text-slate-400 truncate">
+                <span className="hidden sm:inline">STAGE </span><strong className="text-cyan-400">{currentStage + 1}</strong>/{totalStages}: <span className="text-slate-200">{stageNames[currentStage]}</span>
               </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 {Array.from({ length: totalStages }).map((_, idx) => (
                   <button
                     key={idx}
@@ -902,25 +925,25 @@ export function App() {
                     aria-label={`Buka babak ${idx + 1}: ${stageNames[idx]}`}
                     className={`h-2 rounded-full transition-all cursor-pointer ${
                       currentStage === idx
-                        ? 'w-5 sm:w-6 bg-cyan-400 shadow-md shadow-cyan-400/50'
-                        : 'w-2 bg-slate-700 hover:bg-slate-500'
+                        ? 'w-4 sm:w-6 bg-cyan-400 shadow-md shadow-cyan-400/50'
+                        : 'w-1.5 sm:w-2 bg-slate-700 hover:bg-slate-500'
                     }`}
                   />
                 ))}
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
                 <button
                   onClick={handlePrevStage}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
+                  className="px-2 sm:px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white text-[10px] sm:text-xs cursor-pointer font-bold"
                 >
-                  ◀ {lang === 'en' ? 'Prev' : 'Sebelumnya'}
+                  ◀ <span className="hidden sm:inline">{lang === 'en' ? 'Prev' : 'Sebelumnya'}</span>
                 </button>
                 <button
                   onClick={handleNextStage}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
+                  className="px-2 sm:px-2.5 py-1 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white text-[10px] sm:text-xs cursor-pointer font-bold"
                 >
-                  {lang === 'en' ? 'Next' : 'Berikutnya'} ▶
+                  <span className="hidden sm:inline">{lang === 'en' ? 'Next' : 'Berikutnya'}</span> ▶
                 </button>
               </div>
             </nav>
