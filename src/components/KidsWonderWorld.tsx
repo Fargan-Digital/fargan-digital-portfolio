@@ -605,11 +605,72 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       clickHitbox.userData = { character: c };
       charGroup.add(clickHitbox);
 
+      // Character Stage Spotlight (Warm & vibrant illumination for character)
+      const stageSpotlight = new THREE.PointLight(c.color, isNight ? 2.8 : 0.8, 14);
+      stageSpotlight.position.set(0, 2.8, 0);
+      charGroup.add(stageSpotlight);
+
       charactersGroup.add(charGroup);
       characterMeshesRef.current.push({ group: charGroup, char: c, nametagMesh: tagMesh, waveArm: leftArm });
     });
 
     scene.add(charactersGroup);
+
+    // =========================================================
+    // 5B. MAGICAL PARK STREET LAMPS (TIANG LAMPU DISNEY TAMAN)
+    // Placed along circular promenade (radius 44) & around central plaza (radius 22)
+    // =========================================================
+    const streetLampLights: THREE.PointLight[] = [];
+    const streetLampMeshes: THREE.Mesh[] = [];
+
+    const createStreetLamp = (lx: number, lz: number, lampColor = 0xFFF3B0) => {
+      const lampGroup = new THREE.Group();
+      lampGroup.position.set(lx, 0, lz);
+
+      // Cute Victorian / Disney street lamp post
+      const baseGeo = new THREE.CylinderGeometry(0.35, 0.45, 0.5, 12);
+      const postMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.4, metalness: 0.6 });
+      const base = new THREE.Mesh(baseGeo, postMat);
+      base.position.y = 0.25;
+      lampGroup.add(base);
+
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 4.2, 12), postMat);
+      pole.position.y = 2.35;
+      lampGroup.add(pole);
+
+      // Glowing Glass Lantern Head (Sphere lantern with golden cap)
+      const globeGeo = new THREE.SphereGeometry(0.55, 16, 16);
+      const globeMat = new THREE.MeshBasicMaterial({ color: lampColor });
+      const globe = new THREE.Mesh(globeGeo, globeMat);
+      globe.position.y = 4.6;
+      lampGroup.add(globe);
+      streetLampMeshes.push(globe);
+
+      // Decorative Top Finial
+      const finial = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 8), postMat);
+      finial.position.y = 5.25;
+      lampGroup.add(finial);
+
+      // PointLight Casting Warm Glow
+      const pLight = new THREE.PointLight(lampColor, isNight ? 2.4 : 0.4, 18);
+      pLight.position.y = 4.6;
+      lampGroup.add(pLight);
+      streetLampLights.push(pLight);
+
+      scene.add(lampGroup);
+    };
+
+    // 10 Promenade Street Lamps (Along wide outer walking promenade, radius 44)
+    for (let p = 0; p < 10; p++) {
+      const pAngle = (p / 10) * Math.PI * 2;
+      createStreetLamp(Math.cos(pAngle) * 44, Math.sin(pAngle) * 44, 0xFFE6A7);
+    }
+
+    // 6 Plaza Garden Lamps (Around inner central plaza, radius 21)
+    for (let pz = 0; pz < 6; pz++) {
+      const pzAngle = (pz / 6) * Math.PI * 2 + Math.PI / 6;
+      createStreetLamp(Math.cos(pzAngle) * 21, Math.sin(pzAngle) * 21, 0x00E5FF);
+    }
 
     // Decorative Lollipop Trees & Giant Mushrooms
     const parkLanterns: THREE.PointLight[] = [];
@@ -877,6 +938,10 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       wheelCenter.add(cabin);
       ferrisCabins.push(cabin);
     }
+
+    // Glowing Ferris Wheel Central Hub Light
+    const ferrisHubLight = new THREE.PointLight(0xFF006E, isNight ? 3.0 : 0.8, 28);
+    wheelCenter.add(ferrisHubLight);
 
     ferrisWheelGroup.add(wheelCenter);
     scene.add(ferrisWheelGroup);
@@ -1414,34 +1479,43 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           (scene.fog as THREE.FogExp2).density = 0.015 + currentNightFactor * 0.004;
         }
 
-        // Ambient light: 0xffffff (1.4) -> 0x3d5a80 (0.85)
+        // Ambient light: 0xffffff (1.8 day) -> 0x64748b (1.35 night - brighter and crisp like Roblox City)
         const dayAmb = new THREE.Color(0xffffff);
-        const nightAmb = new THREE.Color(0x3d5a80);
+        const nightAmb = new THREE.Color(0x64748b);
         ambientLight.color = dayAmb.clone().lerp(nightAmb, currentNightFactor);
-        ambientLight.intensity = 1.4 - currentNightFactor * 0.55;
+        ambientLight.intensity = 1.8 - currentNightFactor * 0.45;
 
-        // Sun / Directional light: 0xfff3b0 (1.8) -> 0x70a9a1 (0.8)
+        // Sun / Directional light: 0xfff3b0 (2.4 day) -> 0x38bdf8 (2.0 night - brilliant moonlight)
         const daySun = new THREE.Color(0xfff3b0);
-        const nightSun = new THREE.Color(0x70a9a1);
+        const nightSun = new THREE.Color(0x38bdf8);
         sunLight.color = daySun.clone().lerp(nightSun, currentNightFactor);
-        sunLight.intensity = 1.8 - currentNightFactor * 1.0;
+        sunLight.intensity = 2.2 - currentNightFactor * 0.4;
 
-        // Hemisphere light: Day (0x90e0ef / 0x52b788) -> Night (0x1d3557 / 0x0f172a)
+        // Hemisphere light: Day (0x90e0ef / 0x52b788) -> Night (0x3b82f6 / 0x1e293b)
         const dayHemiSky = new THREE.Color(0x90e0ef);
-        const nightHemiSky = new THREE.Color(0x1d3557);
+        const nightHemiSky = new THREE.Color(0x3b82f6);
         hemiLight.color = dayHemiSky.clone().lerp(nightHemiSky, currentNightFactor);
+        hemiLight.intensity = 0.8 + currentNightFactor * 0.4;
 
         // Moon & Glowing Stars visibility and glow
         moonMesh.visible = currentNightFactor > 0.05;
         moonGlow.visible = currentNightFactor > 0.05;
-        moonGlow.intensity = currentNightFactor * 2.2;
+        moonGlow.intensity = currentNightFactor * 3.5;
         starrySky.visible = currentNightFactor > 0.05;
         starsMat.opacity = currentNightFactor * 0.95;
 
+        // Street Lamps along promenade & central plaza (Brilliant illumination)
+        streetLampLights.forEach((sl) => {
+          sl.intensity = 0.3 + currentNightFactor * 2.5;
+        });
+
         // Fairy Lanterns on Lollipop trees
         parkLanterns.forEach((l) => {
-          l.intensity = currentNightFactor * 1.35;
+          l.intensity = 0.2 + currentNightFactor * 1.8;
         });
+
+        // Ferris wheel hub glow
+        ferrisHubLight.intensity = 0.8 + currentNightFactor * 2.8;
 
         // Fireflies visibility
         fireflies.forEach((ff) => {
