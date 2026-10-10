@@ -14,6 +14,7 @@ import {
 import confetti from 'canvas-confetti';
 import { soundEngine } from '../utils/audioManager';
 import { DIGITAL_PRODUCTS, type DigitalProduct } from '../data/creativeProducts';
+import { projectStorage } from '../utils/projectStorage';
 
 interface CreativeLoungeWorldProps {
   onSwitchDimension: (dimension: 'business' | 'kids' | 'creative') => void;
@@ -22,6 +23,17 @@ interface CreativeLoungeWorldProps {
 
 export const CreativeLoungeWorld: React.FC<CreativeLoungeWorldProps> = ({ onSwitchDimension }) => {
   const mountRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic Products from storage
+  const [productsList, setProductsList] = useState<DigitalProduct[]>(() => projectStorage.getCreativeProducts());
+
+  useEffect(() => {
+    projectStorage.loadCreativeProducts().then((prods) => {
+      if (prods && prods.length > 0) {
+        setProductsList(prods);
+      }
+    });
+  }, []);
 
   // States
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -150,7 +162,8 @@ export const CreativeLoungeWorld: React.FC<CreativeLoungeWorldProps> = ({ onSwit
     signMesh.position.set(0, 5, -10);
     scene.add(signMesh);
 
-    // 7. FOUR PRODUCT DISPLAY KIOSKS
+    // 7. PRODUCT DISPLAY KIOSKS
+    const currentProds = projectStorage.getCreativeProducts();
     const kioskCoords = [
       { x: -10, z: -2 },
       { x: -4, z: -2 },
@@ -158,7 +171,7 @@ export const CreativeLoungeWorld: React.FC<CreativeLoungeWorldProps> = ({ onSwit
       { x: 10, z: -2 },
     ];
     kioskCoords.forEach((coord, idx) => {
-      const prod = DIGITAL_PRODUCTS[idx];
+      const prod = currentProds[idx] || DIGITAL_PRODUCTS[idx];
       const kGroup = new THREE.Group();
       kGroup.position.set(coord.x, 0, coord.z);
 
@@ -499,7 +512,7 @@ export const CreativeLoungeWorld: React.FC<CreativeLoungeWorldProps> = ({ onSwit
       {/* FLOATING ACTION PILLS: Quick Jump to Catalog */}
       <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
         <button
-          onClick={() => setSelectedProduct(DIGITAL_PRODUCTS[0])}
+          onClick={() => setSelectedProduct(productsList[0] || DIGITAL_PRODUCTS[0])}
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-purple-600/90 hover:bg-purple-500 text-white font-black text-[11px] sm:text-xs shadow-lg shadow-purple-500/40 border border-purple-400/40 cursor-pointer transition-all hover:scale-105 active:scale-95"
         >
           <ShoppingBag className="w-3.5 h-3.5" />
@@ -605,7 +618,7 @@ export const CreativeLoungeWorld: React.FC<CreativeLoungeWorldProps> = ({ onSwit
               </a>
 
               <div className="grid grid-cols-4 gap-2 pt-2 border-t border-white/10">
-                {DIGITAL_PRODUCTS.map((p) => (
+                {productsList.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => {

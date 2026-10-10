@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundEngine } from '../utils/audioManager';
+import { projectStorage } from '../utils/projectStorage';
 import { 
   KIDS_VIDEOS, 
   KIDS_ANIMALS, 
@@ -452,8 +453,9 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     // =========================================================
     characterMeshesRef.current = [];
     const charactersGroup = new THREE.Group();
+    const currentKidsCharacters = projectStorage.getKidsCharacters();
 
-    KIDS_CHARACTERS.forEach((c) => {
+    currentKidsCharacters.forEach((c) => {
       const charGroup = new THREE.Group();
       charGroup.position.set(c.position[0], c.position[1], c.position[2]);
 
@@ -1740,7 +1742,8 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
               kid.targetPos.set(tTarget.pos.x + (Math.random() - 0.5) * 1.5, 0, tTarget.pos.z + (Math.random() - 0.5) * 1.5);
             } else if (rChoice < 0.6) {
               // Target one of the 5 mascot characters to chat/visit
-              const charTarget = KIDS_CHARACTERS[Math.floor(Math.random() * KIDS_CHARACTERS.length)];
+              const activeChars = projectStorage.getKidsCharacters();
+              const charTarget = activeChars[Math.floor(Math.random() * activeChars.length)] || KIDS_CHARACTERS[0];
               kid.state = 'chat_mascot';
               kid.targetPos.set(charTarget.position[0] + (Math.random() - 0.5) * 3, 0, charTarget.position[2] + (Math.random() - 0.5) * 3);
             } else {
@@ -2100,7 +2103,7 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
                   SAPA SAHABAT LAINNYA DI PULAU:
                 </div>
                 <div className="grid grid-cols-5 gap-1.5">
-                  {KIDS_CHARACTERS.map((other) => (
+                  {projectStorage.getKidsCharacters().map((other) => (
                     <button
                       key={other.id}
                       onClick={() => {

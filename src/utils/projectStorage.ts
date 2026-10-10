@@ -1,11 +1,17 @@
 import { portfolioProjects, type CityBuilding } from '../data/portfolioProjects';
+import { KIDS_CHARACTERS, type KidsCharacter } from '../data/kidsContent';
+import { DIGITAL_PRODUCTS, type DigitalProduct } from '../data/creativeProducts';
 
 const STORAGE_KEY = 'fargan_portfolio_projects_v3';
+const KIDS_STORAGE_KEY = 'fargan_kids_characters_v1';
+const PRODUCTS_STORAGE_KEY = 'fargan_creative_products_v1';
 const TOKEN_KEY = 'fargan_admin_token_v1';
 const USER_KEY = 'fargan_admin_user_v1';
 
 export class ProjectStorageService {
   private memoryProjects: CityBuilding[] = [...portfolioProjects];
+  private memoryKidsCharacters: KidsCharacter[] = [...KIDS_CHARACTERS];
+  private memoryCreativeProducts: DigitalProduct[] = [...DIGITAL_PRODUCTS];
 
   constructor() {
     this.initLocal();
@@ -18,12 +24,29 @@ export class ProjectStorageService {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed.some(p => p.id === 'fargan-tower')) {
           this.memoryProjects = parsed;
-          return;
+        } else {
+          this.memoryProjects = [...portfolioProjects];
+          this.saveToLocalCache(this.memoryProjects);
         }
       }
-      // If no cache or older cache without fargan-tower, use latest default projects
-      this.memoryProjects = [...portfolioProjects];
-      this.saveToLocalCache(this.memoryProjects);
+
+      // Kids Characters Cache
+      const cachedKids = localStorage.getItem(KIDS_STORAGE_KEY);
+      if (cachedKids) {
+        const parsedKids = JSON.parse(cachedKids);
+        if (Array.isArray(parsedKids) && parsedKids.length > 0) {
+          this.memoryKidsCharacters = parsedKids;
+        }
+      }
+
+      // Creative Products Cache
+      const cachedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+      if (cachedProducts) {
+        const parsedProducts = JSON.parse(cachedProducts);
+        if (Array.isArray(parsedProducts) && parsedProducts.length > 0) {
+          this.memoryCreativeProducts = parsedProducts;
+        }
+      }
     } catch {}
   }
 
@@ -104,6 +127,143 @@ export class ProjectStorageService {
           message: err.error 
             ? `Tersimpan Lokal (${err.error})` 
             : 'Tersimpan di Cache Browser.',
+        };
+      }
+    } catch {
+      return {
+        success: true,
+        message: 'Tersimpan di Cache Browser (Offline).',
+      };
+    }
+  }
+
+  // ==========================================
+  // KIDS CHARACTERS & YOUTUBE CONTENT
+  // ==========================================
+  getKidsCharacters(): KidsCharacter[] {
+    return this.memoryKidsCharacters;
+  }
+
+  async loadKidsCharacters(): Promise<KidsCharacter[]> {
+    try {
+      const res = await fetch('/api/kids', {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.characters) && data.characters.length > 0) {
+          // Merge with master default properties to preserve 3D positions/colors
+          const merged: KidsCharacter[] = KIDS_CHARACTERS.map(master => {
+            const remote = data.characters.find((c: any) => c.id === master.id);
+            if (!remote) return master;
+            return {
+              ...master,
+              ...remote,
+              position: master.position,
+              color: master.color,
+              secondaryColor: master.secondaryColor,
+            };
+          });
+
+          this.memoryKidsCharacters = merged;
+          localStorage.setItem(KIDS_STORAGE_KEY, JSON.stringify(merged));
+          return this.memoryKidsCharacters;
+        }
+      }
+    } catch {}
+    return this.memoryKidsCharacters;
+  }
+
+  async saveKidsCharacters(characters: KidsCharacter[]): Promise<{ success: boolean; message: string }> {
+    this.memoryKidsCharacters = [...characters];
+    try {
+      localStorage.setItem(KIDS_STORAGE_KEY, JSON.stringify(this.memoryKidsCharacters));
+    } catch {}
+
+    const token = this.getAuthToken();
+    try {
+      const res = await fetch('/api/kids', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ characters }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          success: true,
+          message: data.message || 'Konten & link YouTube Fargan Kids berhasil disimpan ke Cloudflare Edge!',
+        };
+      } else {
+        const err = await res.json().catch(() => ({}));
+        return {
+          success: true,
+          message: err.error ? `Tersimpan Lokal (${err.error})` : 'Tersimpan di Cache Browser.',
+        };
+      }
+    } catch {
+      return {
+        success: true,
+        message: 'Tersimpan di Cache Browser (Mode Mandiri).',
+      };
+    }
+  }
+
+  // ==========================================
+  // CREATIVE LOUNGE DIGITAL PRODUCTS
+  // ==========================================
+  getCreativeProducts(): DigitalProduct[] {
+    return this.memoryCreativeProducts;
+  }
+
+  async loadCreativeProducts(): Promise<DigitalProduct[]> {
+    try {
+      const res = await fetch('/api/products', {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.products) && data.products.length > 0) {
+          this.memoryCreativeProducts = data.products;
+          localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(data.products));
+          return this.memoryCreativeProducts;
+        }
+      }
+    } catch {}
+    return this.memoryCreativeProducts;
+  }
+
+  async saveCreativeProducts(products: DigitalProduct[]): Promise<{ success: boolean; message: string }> {
+    this.memoryCreativeProducts = [...products];
+    try {
+      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(this.memoryCreativeProducts));
+    } catch {}
+
+    const token = this.getAuthToken();
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ products }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          success: true,
+          message: data.message || 'Katalog produk digital Cafe Kreatif berhasil disimpan ke Cloudflare Edge!',
+        };
+      } else {
+        const err = await res.json().catch(() => ({}));
+        return {
+          success: true,
+          message: err.error ? `Tersimpan Lokal (${err.error})` : 'Tersimpan di Cache Browser.',
         };
       }
     } catch {
