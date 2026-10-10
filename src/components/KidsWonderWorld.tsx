@@ -9,7 +9,15 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundEngine } from '../utils/audioManager';
-import { KIDS_VIDEOS, KIDS_ANIMALS, KIDS_PIANO_NOTES, type KidsVideo, type KidsAnimalFact } from '../data/kidsContent';
+import { 
+  KIDS_VIDEOS, 
+  KIDS_ANIMALS, 
+  KIDS_PIANO_NOTES, 
+  KIDS_CHARACTERS,
+  type KidsVideo, 
+  type KidsAnimalFact,
+  type KidsCharacter 
+} from '../data/kidsContent';
 
 interface KidsWonderWorldProps {
   onSwitchDimension: (dimension: 'business' | 'kids' | 'creative') => void;
@@ -23,9 +31,16 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
   const [selectedAnimal, setSelectedAnimal] = useState<KidsAnimalFact | null>(null);
+  const [activeCharacter, setActiveCharacter] = useState<KidsCharacter | null>(null);
+  const [dialogueTypedText, setDialogueTypedText] = useState<string>('');
+  const [isDialogueTypingDone, setIsDialogueTypingDone] = useState<boolean>(false);
   const [starsCollected, setStarsCollected] = useState<number>(0);
   const [showParentsGuide, setShowParentsGuide] = useState(false);
   const [activePianoNote, setActivePianoNote] = useState<string | null>(null);
+
+  // Character meshes references for proximity & click
+  const characterMeshesRef = useRef<{ group: THREE.Group; char: KidsCharacter; nametagMesh: THREE.Mesh }[]>([]);
+  const lastInteractedCharIdRef = useRef<string | null>(null);
 
   // Three.js References
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -40,6 +55,34 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   const isJumpingRef = useRef(false);
   const jumpVelocityRef = useRef(0);
   const starsMeshesRef = useRef<{ mesh: THREE.Group; id: number; collected: boolean }[]>([]);
+
+  // Typewriter effect for Character dialogue
+  useEffect(() => {
+    if (!activeCharacter) {
+      setDialogueTypedText('');
+      setIsDialogueTypingDone(false);
+      return;
+    }
+
+    setDialogueTypedText('');
+    setIsDialogueTypingDone(false);
+    const fullText = `${activeCharacter.greeting} ${activeCharacter.dialogueIntro}`;
+    let charIndex = 0;
+
+    const timer = setInterval(() => {
+      charIndex++;
+      setDialogueTypedText(fullText.slice(0, charIndex));
+      if (charIndex % 3 === 0) {
+        soundEngine.playTypewriterBlip();
+      }
+      if (charIndex >= fullText.length) {
+        clearInterval(timer);
+        setIsDialogueTypingDone(true);
+      }
+    }, 28);
+
+    return () => clearInterval(timer);
+  }, [activeCharacter]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -230,6 +273,116 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     });
     scene.add(animalGroup);
 
+    // =========================================================
+    // STATION 4: 5 DISNEYLAND CHARACTERS (SAHABAT FARGAN KIDS)
+    // =========================================================
+    characterMeshesRef.current = [];
+    const charactersGroup = new THREE.Group();
+
+    KIDS_CHARACTERS.forEach((c) => {
+      const charGroup = new THREE.Group();
+      charGroup.position.set(c.position[0], c.position[1], c.position[2]);
+
+      // Pedestal Ring Stage with Star Glow
+      const stageRing = new THREE.Mesh(
+        new THREE.CylinderGeometry(2, 2.3, 0.4, 24),
+        new THREE.MeshStandardMaterial({ color: c.color, roughness: 0.3 })
+      );
+      stageRing.position.y = 0.2;
+      stageRing.receiveShadow = true;
+      charGroup.add(stageRing);
+
+      const centerDisc = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.5, 0.45, 24),
+        new THREE.MeshStandardMaterial({ color: c.secondaryColor, roughness: 0.2 })
+      );
+      centerDisc.position.y = 0.22;
+      charGroup.add(centerDisc);
+
+      // Character Model Body
+      const cBody = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 1.8, 1.2),
+        new THREE.MeshStandardMaterial({ color: c.secondaryColor, roughness: 0.3 })
+      );
+      cBody.position.y = 1.6;
+      cBody.castShadow = true;
+      charGroup.add(cBody);
+
+      // Character Head
+      const cHead = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 1.3, 1.3),
+        new THREE.MeshStandardMaterial({ color: c.color, roughness: 0.3 })
+      );
+      cHead.position.y = 3.0;
+      cHead.castShadow = true;
+      charGroup.add(cHead);
+
+      // Cute Big Cartoon Eyes
+      const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.1), new THREE.MeshBasicMaterial({ color: 0x1d3557 }));
+      eyeL.position.set(-0.35, 3.1, 0.66);
+      const eyeR = eyeL.clone();
+      eyeR.position.set(0.35, 3.1, 0.66);
+      charGroup.add(eyeL);
+      charGroup.add(eyeR);
+
+      // Sparkly Pupils
+      const pupilL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      pupilL.position.set(-0.38, 3.16, 0.71);
+      const pupilR = pupilL.clone();
+      pupilR.position.set(0.32, 3.16, 0.71);
+      charGroup.add(pupilL);
+      charGroup.add(pupilR);
+
+      // Cute Smile
+      const cSmile = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.1), new THREE.MeshBasicMaterial({ color: 0xd90429 }));
+      cSmile.position.set(0, 2.7, 0.66);
+      charGroup.add(cSmile);
+
+      // Floating Hologram Nametag Canvas
+      const tagCanvas = document.createElement('canvas');
+      tagCanvas.width = 256;
+      tagCanvas.height = 128;
+      const tagCtx = tagCanvas.getContext('2d');
+      if (tagCtx) {
+        tagCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        tagCtx.roundRect(4, 4, 248, 120, 24);
+        tagCtx.fill();
+        tagCtx.strokeStyle = '#FF006E';
+        tagCtx.lineWidth = 6;
+        tagCtx.stroke();
+
+        tagCtx.fillStyle = '#0F172A';
+        tagCtx.font = 'bold 26px sans-serif';
+        tagCtx.textAlign = 'center';
+        tagCtx.fillText(`${c.avatar} ${c.name.split(' ')[0]}`, 128, 50);
+
+        tagCtx.fillStyle = '#E11D48';
+        tagCtx.font = 'bold 20px sans-serif';
+        tagCtx.fillText('Klik / Dekati!', 128, 92);
+      }
+      const tagTex = new THREE.CanvasTexture(tagCanvas);
+      const tagMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(3.2, 1.6),
+        new THREE.MeshBasicMaterial({ map: tagTex, transparent: true, side: THREE.DoubleSide })
+      );
+      tagMesh.position.set(0, 4.4, 0);
+      charGroup.add(tagMesh);
+
+      // Click Interaction Anchor Mesh
+      const clickHitbox = new THREE.Mesh(
+        new THREE.CylinderGeometry(2, 2, 4.5, 12),
+        new THREE.MeshBasicMaterial({ visible: false })
+      );
+      clickHitbox.position.y = 2.2;
+      clickHitbox.userData = { character: c };
+      charGroup.add(clickHitbox);
+
+      charactersGroup.add(charGroup);
+      characterMeshesRef.current.push({ group: charGroup, char: c, nametagMesh: tagMesh });
+    });
+
+    scene.add(charactersGroup);
+
     // Decorative Lollipop Trees & Giant Mushrooms
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2 + Math.random() * 0.2;
@@ -381,6 +534,22 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
+
+      // Check if clicking directly on a Character
+      const charHits = raycaster.intersectObjects(charactersGroup.children, true);
+      if (charHits.length > 0) {
+        let hitObj: THREE.Object3D | null = charHits[0].object;
+        while (hitObj && !hitObj.userData?.character) {
+          hitObj = hitObj.parent;
+        }
+        if (hitObj && hitObj.userData?.character) {
+          const charData = hitObj.userData.character as KidsCharacter;
+          setActiveCharacter(charData);
+          soundEngine.playProximityChime();
+          return;
+        }
+      }
+
       const intersects = raycaster.intersectObjects([island, plaza]);
 
       if (intersects.length > 0) {
@@ -526,6 +695,34 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           // Proximity to cinema
         }
 
+        // Check Proximity to Disneyland Characters
+        let nearbyChar: KidsCharacter | null = null;
+        characterMeshesRef.current.forEach((cm) => {
+          // Make nametag always face camera like a billboard
+          cm.nametagMesh.lookAt(camera.position);
+
+          // Gentle bobbing character animation
+          cm.group.position.y = Math.sin(elapsed * 2.5 + cm.char.position[0]) * 0.15;
+
+          const dist = playerRef.current!.position.distanceTo(cm.group.position);
+          if (dist < 4.2) {
+            nearbyChar = cm.char;
+          }
+        });
+
+        if (nearbyChar) {
+          if (lastInteractedCharIdRef.current !== (nearbyChar as KidsCharacter).id && !activeCharacter) {
+            lastInteractedCharIdRef.current = (nearbyChar as KidsCharacter).id;
+            setActiveCharacter(nearbyChar);
+            soundEngine.playProximityChime();
+          }
+        } else {
+          // Reset last interacted when walking away
+          if (lastInteractedCharIdRef.current) {
+            lastInteractedCharIdRef.current = null;
+          }
+        }
+
         // Check Rainbow Piano collision
         if (Math.abs(playerRef.current.position.x - (-16)) < 11 && Math.abs(playerRef.current.position.z) < 3.5) {
           const relativeX = playerRef.current.position.x - (-16);
@@ -659,6 +856,18 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           <span>🦁</span>
           <span>Taman Hewan 🐾</span>
         </button>
+
+        <button
+          onClick={() => {
+            const randomChar = KIDS_CHARACTERS[Math.floor(Math.random() * KIDS_CHARACTERS.length)];
+            setActiveCharacter(randomChar);
+            soundEngine.playProximityChime();
+          }}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-black text-[11px] sm:text-xs shadow-lg shadow-purple-500/30 border-2 border-white cursor-pointer transition-all hover:scale-105 active:scale-95"
+        >
+          <span>✨</span>
+          <span>Sapa Sahabat Karakter (5)</span>
+        </button>
       </div>
 
       {/* BOTTOM CONTROL & INSTRUCTION BAR */}
@@ -667,10 +876,10 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
         <div className="p-2.5 sm:p-3 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-pink-400 shadow-xl pointer-events-auto max-w-[280px] sm:max-w-xs space-y-1">
           <div className="flex items-center gap-1.5 text-pink-600 font-black text-xs">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>CARA BERMAIN:</span>
+            <span>DUNIA ANAK FARGAN:</span>
           </div>
           <p className="text-[11px] text-slate-700 leading-tight">
-            👉 <strong>Sentuh tanah di mana saja</strong> untuk berlari ke sana! Dekati layar bioskop untuk menonton kartun seru.
+            👉 <strong>Sentuh tanah</strong> untuk berlari, atau <strong>klik karakter lucu</strong> untuk diajak bicara dan nonton YouTube edukasi bersama!
           </p>
         </div>
 
@@ -689,6 +898,143 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           <span className="text-[9px] font-black uppercase">LOMPAT!</span>
         </button>
       </div>
+
+      {/* ======================================================== */}
+      {/* MODAL 0: INTERACTIVE DISNEYLAND CHARACTER DIALOGUE & YOUTUBE CTA */}
+      {/* ======================================================== */}
+      {activeCharacter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-fade-in pointer-events-auto">
+          <div 
+            className="w-full max-w-lg rounded-3xl bg-white border-4 shadow-2xl p-5 sm:p-6 text-slate-900 relative space-y-3.5 flex flex-col max-h-[92vh] overflow-y-auto"
+            style={{ borderColor: `#${activeCharacter.color.toString(16).padStart(6, '0')}` }}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setActiveCharacter(null)}
+              className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 font-bold flex items-center justify-center cursor-pointer transition-colors"
+            >
+              ✕
+            </button>
+
+            {/* Character Header: Avatar & Name */}
+            <div className="flex items-center gap-3 pr-8">
+              <div 
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl flex items-center justify-center text-3xl sm:text-4xl shadow-lg border-2 border-white shrink-0 animate-bounce"
+                style={{ backgroundColor: `#${activeCharacter.color.toString(16).padStart(6, '0')}33` }}
+              >
+                {activeCharacter.avatar}
+              </div>
+              <div className="min-w-0">
+                <span 
+                  className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full font-bold inline-block"
+                  style={{ 
+                    backgroundColor: `#${activeCharacter.secondaryColor.toString(16).padStart(6, '0')}22`,
+                    color: `#${activeCharacter.secondaryColor.toString(16).padStart(6, '0')}` 
+                  }}
+                >
+                  {activeCharacter.role}
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight mt-0.5 truncate">
+                  {activeCharacter.name}
+                </h3>
+                <p className="text-[11px] text-pink-600 font-bold">Sahabat Resmi Fargan Kids ✨</p>
+              </div>
+            </div>
+
+            {/* RPG Typewriter Dialogue Speech Bubble */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 relative space-y-1.5 shadow-inner">
+              <div className="text-[10px] font-mono font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                <span>💬 BICARA DENGAN TEMANMU:</span>
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-slate-800 leading-relaxed min-h-[50px]">
+                {dialogueTypedText}
+                {!isDialogueTypingDone && (
+                  <span className="inline-block w-1.5 h-3.5 bg-pink-500 animate-pulse ml-1 align-middle" />
+                )}
+              </p>
+            </div>
+
+            {/* Educational Fun Fact / Lesson */}
+            <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-sky-900 flex items-start gap-2">
+              <span className="text-base shrink-0">💡</span>
+              <p className="leading-snug">
+                <strong>Catatan Pintar:</strong> {activeCharacter.lessonFunFact}
+              </p>
+            </div>
+
+            {/* Direct YouTube Video CTA & Watch in Metaverse Button */}
+            <div className="pt-1 space-y-2">
+              {/* Button 1: Play Directly in Metaverse Theater */}
+              <button
+                onClick={() => {
+                  const matchingVideo = KIDS_VIDEOS.find(v => v.youtubeId === activeCharacter.youtubeId) || {
+                    id: activeCharacter.id,
+                    title: activeCharacter.topicTitle,
+                    category: 'cartoon' as const,
+                    youtubeId: activeCharacter.youtubeId,
+                    duration: '04:30',
+                    thumbnail: activeCharacter.avatar,
+                    description: activeCharacter.dialogueIntro,
+                    badge: activeCharacter.role
+                  };
+                  setSelectedVideo(matchingVideo);
+                  setActiveCharacter(null);
+                  confetti({ particleCount: 50, spread: 70, origin: { y: 0.7 } });
+                  soundEngine.playCuteHop();
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-pink-500/30 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <span>🎬</span>
+                <span>{activeCharacter.actionButtonText}</span>
+              </button>
+
+              {/* Button 2: Direct Open in YouTube App / Tab */}
+              <a
+                href={activeCharacter.youtubeUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
+                  soundEngine.playStarCollect();
+                }}
+                className="w-full py-2.5 px-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow cursor-pointer transition-all hover:scale-[1.01]"
+              >
+                <span className="text-sm">▶️</span>
+                <span>Buka di Aplikasi YouTube Channel Fargan Kids</span>
+              </a>
+
+              {/* Other Character Quick Switcher */}
+              <div className="pt-2 border-t border-slate-200">
+                <div className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider mb-1.5">
+                  SAPA SAHABAT LAINNYA DI PULAU:
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {KIDS_CHARACTERS.map((other) => (
+                    <button
+                      key={other.id}
+                      onClick={() => {
+                        setActiveCharacter(other);
+                        soundEngine.playCuteHop();
+                      }}
+                      className={`p-1.5 rounded-xl flex flex-col items-center gap-0.5 border transition-all cursor-pointer ${
+                        activeCharacter.id === other.id
+                          ? 'bg-pink-100 border-pink-400 scale-105 shadow-sm'
+                          : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                      }`}
+                      title={other.name}
+                    >
+                      <span className="text-base sm:text-lg">{other.avatar}</span>
+                      <span className="text-[8px] sm:text-[9px] font-bold truncate text-slate-700 w-full text-center">
+                        {other.name.split(' ')[0]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* MODAL 1: BIOSKOP TEATER KARTUN (KIDS CINEMA PLAYER) */}
