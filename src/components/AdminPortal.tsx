@@ -318,17 +318,26 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToCity, onProjec
     setIsKidSaving(true);
     soundEngine.playTypewriterBlip();
 
-    // Extract YouTube ID from URL or code
+    // Robust YouTube ID extraction supporting:
+    // - https://www.youtube.com/watch?v=VIDEO_ID
+    // - https://m.youtube.com/watch?v=VIDEO_ID
+    // - https://youtu.be/VIDEO_ID?si=...
+    // - https://www.youtube.com/shorts/VIDEO_ID
+    // - https://www.youtube.com/embed/VIDEO_ID
+    // - Raw 11-char ID
     let extractedYtId = editingKidChar.youtubeId;
     const rawUrl = kidFormYoutubeUrl.trim();
     if (rawUrl) {
-      const match = rawUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      const match = rawUrl.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?(?:.*&)?v=|shorts\/|live\/))([\w-]{11})/);
       if (match && match[1]) {
         extractedYtId = match[1];
-      } else if (rawUrl.length === 11 && !rawUrl.includes('/')) {
+      } else if (/^[a-zA-Z0-9_-]{11}$/.test(rawUrl)) {
         extractedYtId = rawUrl;
       }
     }
+
+    // Clean, direct, highly compatible standard URL for mobile & desktop
+    const standardCleanUrl = `https://www.youtube.com/watch?v=${extractedYtId}`;
 
     const updatedChar: KidsCharacter = {
       ...editingKidChar,
@@ -338,7 +347,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToCity, onProjec
       dialogueIntro: kidFormDialogueIntro.trim(),
       topicTitle: kidFormTopicTitle.trim(),
       youtubeId: extractedYtId,
-      youtubeUrl: rawUrl || `https://www.youtube.com/watch?v=${extractedYtId}`,
+      youtubeUrl: standardCleanUrl,
       actionButtonText: kidFormButtonText.trim() || 'Tonton Petualangan Sekarang! ▶️',
       lessonFunFact: kidFormFunFact.trim(),
     };

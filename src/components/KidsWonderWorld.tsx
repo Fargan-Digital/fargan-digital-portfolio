@@ -195,12 +195,17 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     camera.position.set(0, 14, 24);
     cameraRef.current = camera;
 
-    // 3. Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    // 3. Renderer setup (Optimized for silky 60fps on mobile & desktop)
+    const isMobileDevice = width < 768 || window.innerWidth < 768;
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: !isMobileDevice, 
+      alpha: false, 
+      powerPreference: 'high-performance' 
+    });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobileDevice ? 1.25 : 1.75));
+    renderer.shadowMap.enabled = !isMobileDevice; // Disable shadow map on low-power mobile to prevent lag
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -1397,10 +1402,13 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
         }
         if (hitObj && hitObj.userData?.character) {
           const charData = hitObj.userData.character as KidsCharacter;
-          // Set movement target right near the character stage
-          playerTargetRef.current = new THREE.Vector3(charData.position[0], 0, charData.position[2]);
+          // Walk toward front of the character stage (radius 2.5) rather than directly onto center
+          const angleToChar = Math.atan2(charData.position[2], charData.position[0]);
+          const targetX = charData.position[0] - Math.cos(angleToChar) * 2.2;
+          const targetZ = charData.position[2] - Math.sin(angleToChar) * 2.2;
+          playerTargetRef.current = new THREE.Vector3(targetX, 0, targetZ);
           if (clickMarkerRef.current) {
-            clickMarkerRef.current.position.set(charData.position[0], 0.22, charData.position[2]);
+            clickMarkerRef.current.position.set(targetX, 0.22, targetZ);
             clickMarkerRef.current.visible = true;
           }
           soundEngine.playCuteHop();
@@ -1566,11 +1574,18 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           const dir = new THREE.Vector3().subVectors(playerTargetRef.current, currentPos);
           const dist = dir.length();
 
-          if (dist > 0.4) {
+          if (dist > 0.45) {
             dir.normalize();
-            playerRef.current.position.x += dir.x * speed;
-            playerRef.current.position.z += dir.z * speed;
-            playerRef.current.rotation.y = Math.atan2(dir.x, dir.z);
+            const moveStep = Math.min(speed, dist);
+            playerRef.current.position.x += dir.x * moveStep;
+            playerRef.current.position.z += dir.z * moveStep;
+
+            // Smooth rotation towards target direction
+            const targetRot = Math.atan2(dir.x, dir.z);
+            let rotDiff = targetRot - playerRef.current.rotation.y;
+            while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+            while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+            playerRef.current.rotation.y += rotDiff * Math.min(1, delta * 12);
 
             // Bouncy Hop while moving
             legL.rotation.x = Math.sin(elapsed * 14) * 0.6;
@@ -1755,16 +1770,25 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
             }
           }
 
-          // Movement toward target
+          // Movement toward target with smooth rotation (anti-jitter)
           const kidCurPos = new THREE.Vector3(kid.group.position.x, 0, kid.group.position.z);
           const kDir = new THREE.Vector3().subVectors(kid.targetPos, kidCurPos);
           const kDist = kDir.length();
+          const step = kid.speed * delta;
 
-          if (kDist > 0.6) {
+          if (kDist > 0.8) {
             kDir.normalize();
-            kid.group.position.x += kDir.x * kid.speed * delta;
-            kid.group.position.z += kDir.z * kid.speed * delta;
-            kid.group.rotation.y = Math.atan2(kDir.x, kDir.z);
+            // Clamp step to avoid overshooting
+            const actualMove = Math.min(step, kDist);
+            kid.group.position.x += kDir.x * actualMove;
+            kid.group.position.z += kDir.z * actualMove;
+
+            // Smoothly rotate towards movement direction instead of snapping
+            const targetRotY = Math.atan2(kDir.x, kDir.z);
+            let diffRot = targetRotY - kid.group.rotation.y;
+            while (diffRot < -Math.PI) diffRot += Math.PI * 2;
+            while (diffRot > Math.PI) diffRot -= Math.PI * 2;
+            kid.group.rotation.y += diffRot * Math.min(1, delta * 8);
 
             // Bouncy run leg & arm swing
             const runCycle = elapsed * 14 + kIdx;
@@ -2156,22 +2180,35 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
             {/* Video Player */}
             <div className="relative w-full aspect-video bg-black flex-shrink-0">
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${selectedVideo.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`}
                 title={selectedVideo.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
                 className="w-full h-full border-0"
               />
             </div>
 
-            {/* Video Info & Playlist Selector */}
+            {/* Video Info & Direct App Fallback */}
             <div className="p-4 overflow-y-auto space-y-3 bg-slate-900 text-slate-100 flex-1">
-              <div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 font-bold">
-                  {selectedVideo.badge}
-                </span>
-                <h4 className="text-base sm:text-lg font-black mt-1 text-white">{selectedVideo.title}</h4>
-                <p className="text-xs text-slate-300 mt-1">{selectedVideo.description}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 font-bold">
+                    {selectedVideo.badge}
+                  </span>
+                  <h4 className="text-base sm:text-lg font-black mt-1 text-white">{selectedVideo.title}</h4>
+                  <p className="text-xs text-slate-300 mt-1">{selectedVideo.description}</p>
+                </div>
+
+                <a
+                  href={`https://www.youtube.com/watch?v=${selectedVideo.youtubeId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 shadow transition-all active:scale-95"
+                >
+                  <span>▶️</span>
+                  <span>Buka di App YouTube</span>
+                </a>
               </div>
 
               {/* Playlist Selection */}
