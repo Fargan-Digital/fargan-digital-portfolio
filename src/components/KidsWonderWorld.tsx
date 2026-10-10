@@ -37,11 +37,16 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   const [showParentsGuide, setShowParentsGuide] = useState(false);
   const [activePianoNote, setActivePianoNote] = useState<string | null>(null);
 
-  // Real-time Clock (WIB & WITA) with automatic night mode from 19:00 - 05:00
+  // Real-time Clock (WIB & WITA) with automatic night mode (19:00 - 05:00)
+  // and Bedtime Curfew: Closed between 23:00 (11 PM) - 07:00 (7 AM)
   const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
   const [isNightTime, setIsNightTime] = useState<boolean>(() => {
     const hr = new Date().getHours();
     return hr >= 19 || hr < 5;
+  });
+  const [isParkSleeping, setIsParkSleeping] = useState<boolean>(() => {
+    const hr = new Date().getHours();
+    return hr >= 23 || hr < 7;
   });
 
   useEffect(() => {
@@ -52,6 +57,7 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       const now = new Date();
       const hr = now.getHours();
       setIsNightTime(hr >= 19 || hr < 5);
+      setIsParkSleeping(hr >= 23 || hr < 7);
 
       // Formatter for WIB (UTC+7) or WITA (UTC+8) based on user's local Indonesian timezone
       const timeFormatter = new Intl.DateTimeFormat('id-ID', {
@@ -229,9 +235,9 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       scene.add(moonGlow);
     }
 
-    // 5. Grand Disneyland Wonderland Island (Expanded Safe Territory)
-    const islandRadius = 58;
-    const islandGeo = new THREE.CylinderGeometry(islandRadius, islandRadius + 8, 8, 64);
+    // 5. Grand Disneyland Wonderland Island (Vast Safe Kingdom - Radius 75)
+    const islandRadius = 75;
+    const islandGeo = new THREE.CylinderGeometry(islandRadius, islandRadius + 10, 8, 64);
     const islandMat = new THREE.MeshStandardMaterial({
       color: 0x6ede00, // Vibrant lush cartoon grass
       roughness: 0.65,
@@ -242,8 +248,8 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     island.receiveShadow = true;
     scene.add(island);
 
-    // Warm Sunburst Central Plaza
-    const plazaGeo = new THREE.CylinderGeometry(20, 20, 0.35, 48);
+    // Warm Sunburst Central Plaza (Spacious Hub)
+    const plazaGeo = new THREE.CylinderGeometry(24, 24, 0.35, 48);
     const plazaMat = new THREE.MeshStandardMaterial({
       color: 0xffd166, // Warm sunny yellow plaza
       roughness: 0.4,
@@ -253,8 +259,8 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     plaza.receiveShadow = true;
     scene.add(plaza);
 
-    // Stone Promenade Walking Rings & Disney Walkways
-    const ringGeo = new THREE.RingGeometry(30, 36, 48);
+    // Stone Promenade Walking Rings & Disney Walkways (Outer loop for parade cars & kids)
+    const ringGeo = new THREE.RingGeometry(38, 46, 64);
     const ringMat = new THREE.MeshStandardMaterial({
       color: 0xffe6a7,
       roughness: 0.5,
@@ -267,7 +273,7 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     scene.add(ringPath);
 
     // Safety Balloon Fence Posts along the Island Edge (Children never fall into abyss)
-    const fencePostsCount = 36;
+    const fencePostsCount = 48;
     for (let f = 0; f < fencePostsCount; f++) {
       const angle = (f / fencePostsCount) * Math.PI * 2;
       const fx = Math.cos(angle) * (islandRadius - 1.5);
@@ -721,11 +727,12 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     };
 
     // 4 Parade Cars driving along promenade radius 33
+    // 4 Parade Cars driving along wide promenade radius 42
     const carPalette = [
-      { body: 0xFF006E, accent: 0xFFBE0B, speed: 0.35, radius: 32 },
-      { body: 0x3A86FF, accent: 0xFF006E, speed: 0.42, radius: 34 },
-      { body: 0xFB5607, accent: 0x8338EC, speed: -0.32, radius: 33 },
-      { body: 0x06D6A0, accent: 0xFFD166, speed: -0.38, radius: 35 },
+      { body: 0xFF006E, accent: 0xFFBE0B, speed: 0.35, radius: 41 },
+      { body: 0x3A86FF, accent: 0xFF006E, speed: 0.42, radius: 43 },
+      { body: 0xFB5607, accent: 0x8338EC, speed: -0.32, radius: 42 },
+      { body: 0x06D6A0, accent: 0xFFD166, speed: -0.38, radius: 44 },
     ];
     carPalette.forEach((cp, idx) => {
       const carMesh = createKidsCar(cp.body, cp.accent);
@@ -776,11 +783,164 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       skyDrones.push({
         group: droneGroup,
         speed: 0.4 + idx * 0.15,
-        radiusX: 20 + idx * 8,
-        radiusZ: 22 + idx * 7,
-        height: 12 + idx * 3
+        radiusX: 28 + idx * 8,
+        radiusZ: 30 + idx * 7,
+        height: 14 + idx * 3
       });
     });
+
+    // =========================================================
+    // 7C. DISNEYLAND FERRIS WHEEL (BIANGLALA RAKSASA BERPUTAR)
+    // Placed in the North territory [0, 0, -48]
+    // =========================================================
+    const ferrisWheelGroup = new THREE.Group();
+    ferrisWheelGroup.position.set(0, 0, -50);
+
+    // Support A-Frames
+    const aFrameMat = new THREE.MeshStandardMaterial({ color: 0xFF006E, roughness: 0.3 });
+    const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 18, 8), aFrameMat);
+    leg1.position.set(-4.5, 8.5, 0);
+    leg1.rotation.z = -0.22;
+    const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 18, 8), aFrameMat);
+    leg2.position.set(4.5, 8.5, 0);
+    leg2.rotation.z = 0.22;
+    ferrisWheelGroup.add(leg1, leg2);
+
+    // Rotating Wheel Structure
+    const wheelCenter = new THREE.Group();
+    wheelCenter.position.set(0, 16, 0);
+
+    const rimGeo = new THREE.TorusGeometry(10, 0.35, 12, 32);
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0xFFBE0B, roughness: 0.2 });
+    const wheelRim = new THREE.Mesh(rimGeo, rimMat);
+    wheelCenter.add(wheelRim);
+
+    // 8 Spokes & 8 Cute Passenger Cabins
+    const ferrisCabins: THREE.Group[] = [];
+    const spokeMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+    const cabinPalette = [0xFF006E, 0x8338EC, 0x3A86FF, 0x06D6A0, 0xFFBE0B, 0xFB5607, 0x9B5DE5, 0x00F5D4];
+
+    for (let c = 0; c < 8; c++) {
+      const angle = (c / 8) * Math.PI * 2;
+      // Spoke
+      const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 10, 8), spokeMat);
+      spoke.position.set(Math.cos(angle) * 5, Math.sin(angle) * 5, 0);
+      spoke.rotation.z = angle - Math.PI / 2;
+      wheelCenter.add(spoke);
+
+      // Cabin (Gondola)
+      const cabin = new THREE.Group();
+      cabin.position.set(Math.cos(angle) * 10, Math.sin(angle) * 10, 0);
+
+      const cabinBox = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 1.4, 1.4),
+        new THREE.MeshStandardMaterial({ color: cabinPalette[c], roughness: 0.3 })
+      );
+      cabin.add(cabinBox);
+
+      // Little cabin window
+      const win = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.7, 1.45), new THREE.MeshBasicMaterial({ color: 0xFFFFFF }));
+      cabin.add(win);
+
+      wheelCenter.add(cabin);
+      ferrisCabins.push(cabin);
+    }
+
+    ferrisWheelGroup.add(wheelCenter);
+    scene.add(ferrisWheelGroup);
+
+    // =========================================================
+    // 7D. TRAMPOLIN PELANGI BOUNCING (TRAMPOLINE ZONES)
+    // Placed at North-West [-22, 0, -12] and North-East [22, 0, -12]
+    // =========================================================
+    const trampolines: { pos: THREE.Vector3; mesh: THREE.Mesh; pad: THREE.Mesh }[] = [];
+    const trampCoords = [
+      new THREE.Vector3(-22, 0, -12),
+      new THREE.Vector3(22, 0, -12)
+    ];
+
+    trampCoords.forEach((tPos, idx) => {
+      const tGroup = new THREE.Group();
+      tGroup.position.copy(tPos);
+
+      // Outer rainbow ring frame
+      const ring = new THREE.Mesh(
+        new THREE.CylinderGeometry(3.6, 3.8, 0.5, 32),
+        new THREE.MeshStandardMaterial({ color: idx === 0 ? 0xFF006E : 0x3A86FF, roughness: 0.2 })
+      );
+      ring.position.y = 0.25;
+      ring.receiveShadow = true;
+      tGroup.add(ring);
+
+      // Bouncy elastic center mat
+      const matGeo = new THREE.CylinderGeometry(3.0, 3.0, 0.55, 32);
+      const matMat = new THREE.MeshStandardMaterial({ color: 0xFFBE0B, roughness: 0.3 });
+      const matMesh = new THREE.Mesh(matGeo, matMat);
+      matMesh.position.y = 0.28;
+      tGroup.add(matMesh);
+
+      // Little decorative star in center
+      const starDeco = new THREE.Mesh(new THREE.OctahedronGeometry(0.8, 0), new THREE.MeshBasicMaterial({ color: 0xFF006E }));
+      starDeco.rotation.x = Math.PI / 2;
+      starDeco.position.y = 0.6;
+      tGroup.add(starDeco);
+
+      scene.add(tGroup);
+      trampolines.push({ pos: tPos, mesh: tGroup as any, pad: matMesh });
+    });
+
+    // =========================================================
+    // 7E. FLOATING SOAP BUBBLE PARTICLES (POPPABLE BUBBLES)
+    // Whimsical translucent spheres floating from grass
+    // =========================================================
+    const bubblesCount = 18;
+    const bubbles: { mesh: THREE.Mesh; vy: number; vx: number; vz: number; basePos: THREE.Vector3 }[] = [];
+    const bubbleGeo = new THREE.SphereGeometry(0.65, 16, 16);
+    const bubbleMat = new THREE.MeshStandardMaterial({
+      color: 0x90E0EF,
+      transparent: true,
+      opacity: 0.65,
+      roughness: 0.1,
+      metalness: 0.1
+    });
+
+    for (let b = 0; b < bubblesCount; b++) {
+      const bMesh = new THREE.Mesh(bubbleGeo, bubbleMat);
+      const bx = (Math.random() - 0.5) * 70;
+      const bz = (Math.random() - 0.5) * 70;
+      const by = 0.5 + Math.random() * 5;
+      bMesh.position.set(bx, by, bz);
+      scene.add(bMesh);
+
+      bubbles.push({
+        mesh: bMesh,
+        vy: 0.8 + Math.random() * 0.8,
+        vx: (Math.random() - 0.5) * 0.4,
+        vz: (Math.random() - 0.5) * 0.4,
+        basePos: new THREE.Vector3(bx, 0, bz)
+      });
+    }
+
+    // =========================================================
+    // 7F. MAGICAL NIGHT FIREFLIES (KUNANG-KUNANG MALAM)
+    // Gentle glowing firefly swarm around trees
+    // =========================================================
+    const fireflyCount = 28;
+    const fireflies: { mesh: THREE.Mesh; seed: number; speed: number; radius: number }[] = [];
+    const fireflyGeo = new THREE.SphereGeometry(0.18, 8, 8);
+    const fireflyMat = new THREE.MeshBasicMaterial({ color: 0xCCFF33 });
+
+    for (let ff = 0; ff < fireflyCount; ff++) {
+      const fMesh = new THREE.Mesh(fireflyGeo, fireflyMat);
+      fMesh.visible = isNight;
+      scene.add(fMesh);
+      fireflies.push({
+        mesh: fMesh,
+        seed: Math.random() * 100,
+        speed: 0.6 + Math.random() * 0.8,
+        radius: 12 + Math.random() * 38
+      });
+    }
 
     // 8. CHIBI AVATAR (FARGAN JUNIOR)
     const player = new THREE.Group();
@@ -1147,9 +1307,9 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           }
         }
 
-        // Keep player safely inside the Disneyland Park boundaries (Never fall off into sky)
+        // Keep player safely inside the Disneyland Park boundaries (Expanded to 70)
         const playerDistFromCenter = Math.hypot(playerRef.current.position.x, playerRef.current.position.z);
-        const maxBoundary = 54;
+        const maxBoundary = 70;
         if (playerDistFromCenter > maxBoundary) {
           const clampAngle = Math.atan2(playerRef.current.position.z, playerRef.current.position.x);
           playerRef.current.position.x = Math.cos(clampAngle) * maxBoundary;
@@ -1157,6 +1317,58 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           playerTargetRef.current = null;
           if (clickMarkerRef.current) clickMarkerRef.current.visible = false;
         }
+
+        // 1. Animate Disneyland Ferris Wheel (Smooth majestic rotation)
+        wheelCenter.rotation.z += delta * 0.18;
+        // Keep Ferris wheel gondolas hanging upright as wheel turns
+        ferrisCabins.forEach((cab) => {
+          cab.rotation.z = -wheelCenter.rotation.z;
+        });
+
+        // 2. Trampoline Bouncing Interaction (Auto-hop high when stepped on!)
+        trampolines.forEach((t) => {
+          const tDist = Math.hypot(playerRef.current!.position.x - t.pos.x, playerRef.current!.position.z - t.pos.z);
+          if (tDist < 3.2 && playerRef.current!.position.y <= 0.8) {
+            isJumpingRef.current = true;
+            jumpVelocityRef.current = 0.55; // Super high trampoline bounce!
+            soundEngine.playJump();
+            confetti({ particleCount: 30, spread: 60, origin: { y: 0.6 } });
+          }
+        });
+
+        // 3. Animate Soap Bubbles (Drift upwards and pop when player runs into them)
+        bubbles.forEach((b) => {
+          b.mesh.position.y += b.vy * delta;
+          b.mesh.position.x += Math.sin(elapsed * 2 + b.basePos.x) * delta * 0.5;
+          b.mesh.position.z += Math.cos(elapsed * 2 + b.basePos.z) * delta * 0.5;
+
+          // If reached sky, recycle bubble from grass
+          if (b.mesh.position.y > 14) {
+            b.mesh.position.y = 0.5;
+            b.mesh.position.x = (Math.random() - 0.5) * 80;
+            b.mesh.position.z = (Math.random() - 0.5) * 80;
+            b.mesh.scale.setScalar(1);
+          }
+
+          // Player pops bubble!
+          const bDist = playerRef.current!.position.distanceTo(b.mesh.position);
+          if (bDist < 1.6) {
+            b.mesh.position.y = 0.5; // Reset
+            soundEngine.playCuteHop();
+            confetti({ particleCount: 15, spread: 45, origin: { y: 0.7 } });
+          }
+        });
+
+        // 4. Animate Fireflies (Magical nighttime glow dancing around park)
+        fireflies.forEach((ff) => {
+          const fa = elapsed * ff.speed + ff.seed;
+          ff.mesh.position.x = Math.cos(fa) * ff.radius;
+          ff.mesh.position.z = Math.sin(fa) * ff.radius;
+          ff.mesh.position.y = 1.5 + Math.sin(elapsed * 3 + ff.seed) * 1.2;
+          // Pulse brightness
+          const fScale = 0.8 + Math.sin(elapsed * 5 + ff.seed) * 0.4;
+          ff.mesh.scale.setScalar(fScale);
+        });
 
         // Check Cinema Distance (Auto prompt)
         const distToCinema = playerRef.current.position.distanceTo(cinemaGroup.position);
@@ -1690,6 +1902,46 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
               className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-wider cursor-pointer transition-all shadow"
             >
               SAYA MENGERTI, BIARKAN ANAK SAYA BERMAIN ➔
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 4: JAM TIDUR ANAK (BEDTIME CURFEW 23:00 - 07:00) */}
+      {/* Melindungi jam istirahat anak dengan pesan hangat */}
+      {/* ======================================================== */}
+      {isParkSleeping && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-lg animate-fade-in pointer-events-auto">
+          <div className="w-full max-w-md rounded-3xl bg-slate-900 border-4 border-indigo-500 shadow-2xl p-6 sm:p-8 text-center text-white relative space-y-4">
+            {/* Animated Sleeping Moon & Stars */}
+            <div className="w-24 h-24 mx-auto rounded-full bg-indigo-950 border-4 border-indigo-400 flex items-center justify-center text-5xl shadow-inner shadow-indigo-500/50 animate-pulse">
+              🌙
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold uppercase tracking-wider">
+                ⏰ JAM TIDUR KECIL • {currentTimeStr}
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white pt-1">
+                Saatnya Bobo Ceria! ✨
+              </h3>
+            </div>
+
+            <p className="text-sm text-indigo-200 leading-relaxed px-2">
+              "Taman Fargan Kids sudah istirahat dulu ya teman kecil. <strong>Selamat tidur nyenyak, mimpi indah</strong>. Besok pagi pukul <strong>07.00</strong> kita main lagi bareng Milo, Pipa, Luna, Bobo &amp; Chiki!" 🧸💤
+            </p>
+
+            <div className="p-3.5 rounded-2xl bg-indigo-950/80 border border-indigo-800/60 text-xs text-indigo-300 flex items-center justify-center gap-2">
+              <span>⭐</span>
+              <span>Tubuh sehat dan pintar didapat dari tidur yang cukup malam ini.</span>
+            </div>
+
+            <button
+              onClick={() => onSwitchDimension('business')}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs uppercase tracking-wider cursor-pointer transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+            >
+              KEMBALI KE BERANDA UTAMA ➔
             </button>
           </div>
         </div>
