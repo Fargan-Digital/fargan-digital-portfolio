@@ -44,7 +44,7 @@ export const KIDS_CHARACTERS: KidsCharacter[] = [
     avatar: '🦁',
     color: 0xffb703,
     secondaryColor: 0xfb8500,
-    position: [-10, 0, -4],
+    position: [-28, 0, -18], // Rimba Barat Laut
     greeting: 'Halo Sahabat Petualang Cilik! 🌿🐾',
     dialogueIntro: 'Hari ini Milo mau ajak kamu jalan-jalan ke hutan ajaib untuk mengenal suara dan rahasia hewan-hewan lucu!',
     topicTitle: 'Mengenal Ragam Satwa & Suara Hewan Ceria',
@@ -61,7 +61,7 @@ export const KIDS_CHARACTERS: KidsCharacter[] = [
     avatar: '🤖',
     color: 0x06d6a0,
     secondaryColor: 0x118ab2,
-    position: [10, 0, -4],
+    position: [28, 0, -18], // Lab Robotika Timur Laut
     greeting: 'Bip-Bop! Halo Sahabat Pintar! 🔢✨',
     dialogueIntro: 'Siapa yang mau belajar berhitung 1 sampai 10 sambil bernyanyi bersama Pipa si Robot Ceria?',
     topicTitle: 'Belajar Berhitung & Matematika Ceria 1-10',
@@ -78,7 +78,7 @@ export const KIDS_CHARACTERS: KidsCharacter[] = [
     avatar: '🚀',
     color: 0x8338ec,
     secondaryColor: 0x3a86ff,
-    position: [-12, 0, 10],
+    position: [-32, 0, 22], // Observatorium Bintang Barat Daya
     greeting: 'Bintang berkelip menyapamu! Halo! 🌌⭐',
     dialogueIntro: 'Pernahkah kamu penasaran mengapa langit berwarna biru dan bagaimana pelangi indah bisa muncul setelah hujan?',
     topicTitle: 'Rahasia Langit Biru, Pelangi & Luar Angkasa',
@@ -95,7 +95,7 @@ export const KIDS_CHARACTERS: KidsCharacter[] = [
     avatar: '🧁',
     color: 0xff006e,
     secondaryColor: 0xff595e,
-    position: [12, 0, 10],
+    position: [32, 0, 22], // Toko Kue Kreatif Tenggara
     greeting: 'Yum-yum! Selamat datang teman manis! 🍓🎨',
     dialogueIntro: 'Bobo punya resep warna-warni yang asyik untuk melatih imajinasimu menggambar dan membuat kreasi kerajinan tangan!',
     topicTitle: 'Kreasi Warna-Warni & Cerita Kejujuran Anak',
@@ -112,7 +112,7 @@ export const KIDS_CHARACTERS: KidsCharacter[] = [
     avatar: '🐤',
     color: 0xffbe0b,
     secondaryColor: 0xf72585,
-    position: [0, 0, 14],
+    position: [0, 0, 32], // Gerbang Selamat Datang Selatan
     greeting: 'Cuit cuit! Salam hangat untuk anak hebat! 💌💛',
     dialogueIntro: 'Chiki membawa pesan manis dari Fargan Kids tentang pentingnya tersenyum, mengucap tolong, terima kasih, dan maaf!',
     topicTitle: 'Dongeng 3 Kata Ajaib: Tolong, Maaf & Terima Kasih',

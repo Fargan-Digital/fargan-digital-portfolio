@@ -5,7 +5,8 @@ import {
   Volume2, 
   VolumeX, 
   Film, 
-  CheckCircle2
+  CheckCircle2,
+  Volume1
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundEngine } from '../utils/audioManager';
@@ -56,11 +57,33 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   const jumpVelocityRef = useRef(0);
   const starsMeshesRef = useRef<{ mesh: THREE.Group; id: number; collected: boolean }[]>([]);
 
-  // Typewriter effect for Character dialogue
+  // Web Speech API Voice Actor Synthesis for Character
+  const speakVoice = (text: string, pitch = 1.2) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'id-ID';
+      utterance.rate = 1.05; // Lively children pace
+      utterance.pitch = pitch; // Cheerful friendly pitch
+
+      // Pick Indonesian voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const idVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('ID'));
+      if (idVoice) utterance.voice = idVoice;
+
+      window.speechSynthesis.speak(utterance);
+    } catch {}
+  };
+
+  // Typewriter effect for Character dialogue & automatic friendly voice greetings
   useEffect(() => {
     if (!activeCharacter) {
       setDialogueTypedText('');
       setIsDialogueTypingDone(false);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       return;
     }
 
@@ -68,6 +91,10 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     setIsDialogueTypingDone(false);
     const fullText = `${activeCharacter.greeting} ${activeCharacter.dialogueIntro}`;
     let charIndex = 0;
+
+    // Trigger sweet friendly voice speaking
+    const voicePitch = activeCharacter.speechAudioPitch >= 600 ? 1.35 : 1.15;
+    speakVoice(fullText, voicePitch);
 
     const timer = setInterval(() => {
       charIndex++;
@@ -81,7 +108,12 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       }
     }, 28);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, [activeCharacter]);
 
   useEffect(() => {
@@ -126,20 +158,21 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     const hemiLight = new THREE.HemisphereLight(0x90e0ef, 0x52b788, 0.8);
     scene.add(hemiLight);
 
-    // 5. Main Island (Soft Round Terrain)
-    const islandGeo = new THREE.CylinderGeometry(36, 42, 6, 48);
+    // 5. Grand Disneyland Wonderland Island (Expanded Safe Territory)
+    const islandRadius = 58;
+    const islandGeo = new THREE.CylinderGeometry(islandRadius, islandRadius + 8, 8, 64);
     const islandMat = new THREE.MeshStandardMaterial({
-      color: 0x70e000, // Vibrant cartoon grass
-      roughness: 0.6,
-      metalness: 0.1,
+      color: 0x6ede00, // Vibrant lush cartoon grass
+      roughness: 0.65,
+      metalness: 0.05,
     });
     const island = new THREE.Mesh(islandGeo, islandMat);
-    island.position.y = -3;
+    island.position.y = -4;
     island.receiveShadow = true;
     scene.add(island);
 
-    // Candy checkered central plaza
-    const plazaGeo = new THREE.CylinderGeometry(14, 14, 0.3, 32);
+    // Warm Sunburst Central Plaza
+    const plazaGeo = new THREE.CylinderGeometry(20, 20, 0.35, 48);
     const plazaMat = new THREE.MeshStandardMaterial({
       color: 0xffd166, // Warm sunny yellow plaza
       roughness: 0.4,
@@ -149,12 +182,50 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     plaza.receiveShadow = true;
     scene.add(plaza);
 
+    // Stone Promenade Walking Rings & Disney Walkways
+    const ringGeo = new THREE.RingGeometry(30, 36, 48);
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: 0xffe6a7,
+      roughness: 0.5,
+      side: THREE.DoubleSide
+    });
+    const ringPath = new THREE.Mesh(ringGeo, ringMat);
+    ringPath.rotation.x = -Math.PI / 2;
+    ringPath.position.y = 0.12;
+    ringPath.receiveShadow = true;
+    scene.add(ringPath);
+
+    // Safety Balloon Fence Posts along the Island Edge (Children never fall into abyss)
+    const fencePostsCount = 36;
+    for (let f = 0; f < fencePostsCount; f++) {
+      const angle = (f / fencePostsCount) * Math.PI * 2;
+      const fx = Math.cos(angle) * (islandRadius - 1.5);
+      const fz = Math.sin(angle) * (islandRadius - 1.5);
+
+      const fPost = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.45, 3.5, 12),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
+      );
+      fPost.position.set(fx, 1.75, fz);
+      scene.add(fPost);
+
+      const fTopper = new THREE.Mesh(
+        new THREE.SphereGeometry(0.9, 16, 16),
+        new THREE.MeshStandardMaterial({
+          color: [0xff006e, 0x8338ec, 0x3a86ff, 0xffbe0b, 0x06d6a0][f % 5],
+          roughness: 0.2
+        })
+      );
+      fTopper.position.set(fx, 3.8, fz);
+      scene.add(fTopper);
+    }
+
     // Click target ground indicator
-    const markerGeo = new THREE.RingGeometry(0.4, 0.8, 32);
+    const markerGeo = new THREE.RingGeometry(0.5, 1.0, 32);
     const markerMat = new THREE.MeshBasicMaterial({ color: 0xff006e, side: THREE.DoubleSide });
     const clickMarker = new THREE.Mesh(markerGeo, markerMat);
     clickMarker.rotation.x = -Math.PI / 2;
-    clickMarker.position.y = 0.2;
+    clickMarker.position.y = 0.22;
     clickMarker.visible = false;
     scene.add(clickMarker);
     clickMarkerRef.current = clickMarker;
@@ -689,6 +760,17 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           }
         }
 
+        // Keep player safely inside the Disneyland Park boundaries (Never fall off into sky)
+        const playerDistFromCenter = Math.hypot(playerRef.current.position.x, playerRef.current.position.z);
+        const maxBoundary = 54;
+        if (playerDistFromCenter > maxBoundary) {
+          const clampAngle = Math.atan2(playerRef.current.position.z, playerRef.current.position.x);
+          playerRef.current.position.x = Math.cos(clampAngle) * maxBoundary;
+          playerRef.current.position.z = Math.sin(clampAngle) * maxBoundary;
+          playerTargetRef.current = null;
+          if (clickMarkerRef.current) clickMarkerRef.current.visible = false;
+        }
+
         // Check Cinema Distance (Auto prompt)
         const distToCinema = playerRef.current.position.distanceTo(cinemaGroup.position);
         if (distToCinema < 7 && !selectedVideo) {
@@ -705,7 +787,7 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           cm.group.position.y = Math.sin(elapsed * 2.5 + cm.char.position[0]) * 0.15;
 
           const dist = playerRef.current!.position.distanceTo(cm.group.position);
-          if (dist < 4.2) {
+          if (dist < 3.5) {
             nearbyChar = cm.char;
           }
         });
@@ -943,8 +1025,19 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
 
             {/* RPG Typewriter Dialogue Speech Bubble */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 relative space-y-1.5 shadow-inner">
-              <div className="text-[10px] font-mono font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
-                <span>💬 BICARA DENGAN TEMANMU:</span>
+              <div className="flex items-center justify-between text-[10px] font-mono font-bold text-amber-800 uppercase tracking-wider">
+                <span className="flex items-center gap-1">💬 BICARA DENGAN TEMANMU:</span>
+                <button
+                  onClick={() => {
+                    const voicePitch = activeCharacter.speechAudioPitch >= 600 ? 1.35 : 1.15;
+                    speakVoice(`${activeCharacter.greeting} ${activeCharacter.dialogueIntro}`, voicePitch);
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-200 hover:bg-amber-300 text-amber-900 border border-amber-400 cursor-pointer active:scale-95 transition-all"
+                  title="Dengarkan Suara Karakter"
+                >
+                  <Volume1 className="w-3.5 h-3.5 text-amber-800" />
+                  <span>Dengarkan Suara 🔊</span>
+                </button>
               </div>
               <p className="text-xs sm:text-sm font-medium text-slate-800 leading-relaxed min-h-[50px]">
                 {dialogueTypedText}
