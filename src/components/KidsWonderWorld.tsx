@@ -6,7 +6,12 @@ import {
   VolumeX, 
   Film, 
   CheckCircle2,
-  Volume1
+  Volume1,
+  RotateCcw,
+  RotateCw,
+  ZoomIn,
+  ZoomOut,
+  Navigation
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundEngine } from '../utils/audioManager';
@@ -51,6 +56,11 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   const playerTargetRef = useRef<THREE.Vector3 | null>(null);
   const clickMarkerRef = useRef<THREE.Mesh | null>(null);
 
+  // Orbit camera control refs (Rotate & Zoom like Roblox City)
+  const rotateCameraRef = useRef<((delta: number) => void) | null>(null);
+  const zoomCameraRef = useRef<((delta: number) => void) | null>(null);
+  const resetCameraRef = useRef<(() => void) | null>(null);
+
   // Movement keys
   const keysRef = useRef({ forward: false, backward: false, left: false, right: false, jump: false });
   const isJumpingRef = useRef(false);
@@ -62,7 +72,18 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     try {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
+
+      // Clean emojis, asterisks, brackets, and symbols so voice actor only reads clean spoken words
+      const cleanSpokenWords = text
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+        .replace(/[▶️🎬⭐✨🦁🤖🚀🧁🐤🌿🐾🔢🎵🌈🎨📖💌💛💡👉]/g, '')
+        .replace(/[*_~`#[\]()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!cleanSpokenWords) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanSpokenWords);
       utterance.lang = 'id-ID';
       utterance.rate = 1.05; // Lively children pace
       utterance.pitch = pitch; // Cheerful friendly pitch
@@ -588,18 +609,145 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     scene.add(player);
     playerRef.current = player;
 
-    // 9. CLICK TO MOVE (Tap anywhere on ground)
+    // 9. ORBIT CAMERA & CLICK-TO-MOVE (LIKE ROBLOX CITY)
+    const isMobile = window.innerWidth <= 768;
+    let cameraAngle = 0;
+    let targetCameraAngle = 0;
+    let cameraPitch = isMobile ? 0.45 : 0.40;
+    let targetCameraPitch = isMobile ? 0.45 : 0.40;
+    let cameraDistance = isMobile ? 24.0 : 20.0;
+    let targetCameraDistance = isMobile ? 24.0 : 20.0;
+
+    const MIN_DISTANCE = 10.0;
+    const MAX_DISTANCE = 42.0;
+    const MIN_PITCH = 0.18;
+    const MAX_PITCH = 0.82;
+
+    rotateCameraRef.current = (delta: number) => {
+      targetCameraAngle += delta;
+      soundEngine.playFootstep();
+    };
+    zoomCameraRef.current = (delta: number) => {
+      targetCameraDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetCameraDistance + delta));
+      soundEngine.playFootstep();
+    };
+    resetCameraRef.current = () => {
+      targetCameraAngle = 0;
+      targetCameraPitch = isMobile ? 0.45 : 0.40;
+      targetCameraDistance = isMobile ? 24.0 : 20.0;
+      soundEngine.playFootstep();
+    };
+
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
-      // Don't trigger if tapping on UI overlays
+    let isDragging = false;
+    let dragDistance = 0;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+    let lastPinchDist = 0;
+
+    // Desktop Mouse Drag
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('.kids-overlay')) return;
+      if (e.button !== 0) return;
+      isDragging = true;
+      dragDistance = 0;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastPointerX;
+      const dy = e.clientY - lastPointerY;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
+      dragDistance += Math.hypot(dx, dy);
+
+      targetCameraAngle -= dx * 0.007;
+      targetCameraPitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, targetCameraPitch + dy * 0.005));
+    };
+
+    const onMouseUp = (e: MouseEvent) => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      // If user merely clicked without dragging, perform Click-to-Move / Character Click!
+      if (dragDistance < 6) {
+        handleGroundClick(e.clientX, e.clientY);
+      }
+    };
+
+    // Desktop Mouse Wheel Zoom
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomDelta = e.deltaY * 0.02;
+      targetCameraDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetCameraDistance + zoomDelta));
+    };
+
+    // Mobile Touch Drag & Pinch-to-Zoom
+    const onTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('button') || target.closest('.kids-overlay')) return;
 
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      if (e.touches.length === 1) {
+        isDragging = true;
+        dragDistance = 0;
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        lastPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    };
 
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1 && isDragging) {
+        if (e.cancelable) e.preventDefault();
+        const dx = e.touches[0].clientX - lastPointerX;
+        const dy = e.touches[0].clientY - lastPointerY;
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+        dragDistance += Math.hypot(dx, dy);
+
+        targetCameraAngle -= dx * 0.008;
+        targetCameraPitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, targetCameraPitch + dy * 0.006));
+      } else if (e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (lastPinchDist > 0) {
+          const pinchDelta = (lastPinchDist - dist) * 0.06;
+          targetCameraDistance = Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, targetCameraDistance + pinchDelta));
+        }
+        lastPinchDist = dist;
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        if (isDragging && dragDistance < 10) {
+          handleGroundClick(lastPointerX, lastPointerY);
+        }
+        isDragging = false;
+        lastPinchDist = 0;
+      } else if (e.touches.length === 1) {
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+        isDragging = true;
+        dragDistance = 0;
+        lastPinchDist = 0;
+      }
+    };
+
+    const handleGroundClick = (clientX: number, clientY: number) => {
       const rect = container.getBoundingClientRect();
       mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -628,14 +776,21 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
         playerTargetRef.current = new THREE.Vector3(point.x, 0, point.z);
 
         if (clickMarkerRef.current) {
-          clickMarkerRef.current.position.set(point.x, 0.2, point.z);
+          clickMarkerRef.current.position.set(point.x, 0.22, point.z);
           clickMarkerRef.current.visible = true;
         }
         soundEngine.playCuteHop();
       }
     };
 
-    container.addEventListener('pointerdown', handlePointerDown);
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    container.addEventListener('wheel', onWheel, { passive: false });
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
     // Keyboard handlers
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -818,12 +973,25 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           if (activePianoNote !== null) setActivePianoNote(null);
         }
 
-        // Camera Follow (Smooth Spring Follow)
-        const targetCamX = playerRef.current.position.x;
-        const targetCamY = playerRef.current.position.y + 11;
-        const targetCamZ = playerRef.current.position.z + 16;
-        camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.06);
-        camera.lookAt(playerRef.current.position.x, playerRef.current.position.y + 1.5, playerRef.current.position.z);
+        // Smooth Orbit Camera Interpolation (Zoom & Rotation Orbit)
+        cameraAngle += (targetCameraAngle - cameraAngle) * 0.12;
+        cameraPitch += (targetCameraPitch - cameraPitch) * 0.12;
+        cameraDistance += (targetCameraDistance - cameraDistance) * 0.12;
+
+        const cosP = Math.cos(cameraPitch);
+        const sinP = Math.sin(cameraPitch);
+        const camOffsetX = -Math.sin(cameraAngle) * cosP * cameraDistance;
+        const camOffsetZ = Math.cos(cameraAngle) * cosP * cameraDistance;
+        const camOffsetY = sinP * cameraDistance + 1.2;
+
+        const targetCamPos = new THREE.Vector3(
+          playerRef.current.position.x + camOffsetX,
+          playerRef.current.position.y + camOffsetY,
+          playerRef.current.position.z + camOffsetZ
+        );
+
+        camera.position.lerp(targetCamPos, 0.12);
+        camera.lookAt(playerRef.current.position.x, playerRef.current.position.y + 1.2, playerRef.current.position.z);
       }
 
       renderer.render(scene, camera);
@@ -845,7 +1013,14 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      container.removeEventListener('pointerdown', handlePointerDown);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
       cancelAnimationFrame(animationFrameId);
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -965,20 +1140,67 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           </p>
         </div>
 
-        {/* Big On-Screen Jump Button for Kids */}
-        <button
-          onClick={() => {
-            if (!isJumpingRef.current && playerRef.current) {
-              isJumpingRef.current = true;
-              jumpVelocityRef.current = 0.35;
-              soundEngine.playJump();
-            }
-          }}
-          className="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-2xl border-4 border-white cursor-pointer active:scale-90 transition-all"
-        >
-          <span className="text-lg">🚀</span>
-          <span className="text-[9px] font-black uppercase">LOMPAT!</span>
-        </button>
+        {/* Bottom Right: Camera Controls (Rotate & Zoom) + Big Jump Button */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Quick Camera Rotate & Zoom Cluster */}
+          <div className="flex flex-col gap-1.5 p-1 rounded-2xl bg-white/90 backdrop-blur-md border-2 border-pink-300 shadow-xl">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => rotateCameraRef.current?.(Math.PI / 4)}
+                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
+                title="Putar Layar Kiri (45°)"
+              >
+                <RotateCcw className="w-4 h-4 text-pink-400" />
+              </button>
+              <button
+                onClick={() => rotateCameraRef.current?.(-Math.PI / 4)}
+                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
+                title="Putar Layar Kanan (45°)"
+              >
+                <RotateCw className="w-4 h-4 text-pink-400" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => zoomCameraRef.current?.(-4)}
+                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
+                title="Perbesar Layar (Zoom In)"
+              >
+                <ZoomIn className="w-4 h-4 text-amber-400" />
+              </button>
+              <button
+                onClick={() => zoomCameraRef.current?.(4)}
+                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
+                title="Perkecil Layar (Zoom Out)"
+              >
+                <ZoomOut className="w-4 h-4 text-cyan-400" />
+              </button>
+            </div>
+            <button
+              onClick={() => resetCameraRef.current?.()}
+              className="w-full py-1 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold text-[9px] flex items-center justify-center gap-0.5 cursor-pointer active:scale-95 transition-all"
+              title="Reset Sudut Pandang Kamera"
+            >
+              <Navigation className="w-2.5 h-2.5" />
+              <span>Reset</span>
+            </button>
+          </div>
+
+          {/* Big On-Screen Jump Button for Kids */}
+          <button
+            onClick={() => {
+              if (!isJumpingRef.current && playerRef.current) {
+                isJumpingRef.current = true;
+                jumpVelocityRef.current = 0.35;
+                soundEngine.playJump();
+              }
+            }}
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-2xl border-4 border-white cursor-pointer active:scale-90 transition-all"
+          >
+            <span className="text-lg">🚀</span>
+            <span className="text-[9px] font-black uppercase">LOMPAT!</span>
+          </button>
+        </div>
       </div>
 
       {/* ======================================================== */}
