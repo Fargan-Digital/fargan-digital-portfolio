@@ -3,6 +3,8 @@ import confetti from 'canvas-confetti';
 import { DustCanvas } from './components/DustCanvas';
 import { VoxelAvatar3D } from './components/VoxelAvatar3D';
 import { RobloxCityWorld } from './components/RobloxCityWorld';
+import { KidsWonderWorld } from './components/KidsWonderWorld';
+import { CreativeLoungeWorld } from './components/CreativeLoungeWorld';
 import { type CityBuilding } from './data/portfolioProjects';
 import { soundEngine } from './utils/audioManager';
 import { AdminPortal } from './components/AdminPortal';
@@ -36,6 +38,11 @@ import {
 } from 'lucide-react';
 
 export function App() {
+  // Dimension Hub: 'business' (Metropolis B2B) | 'kids' (Wonderland) | 'creative' (Cafe Gen-Z)
+  const [dimension, setDimension] = useState<'business' | 'kids' | 'creative'>(() => {
+    return (localStorage.getItem('fargan_dimension') as 'business' | 'kids' | 'creative') || 'business';
+  });
+
   // Default to cinematic stage presentation for super-cool intro welcoming
   const [viewMode, setViewMode] = useState<'city' | 'cinematic' | 'alfarghan'>('cinematic');
   const [projects, setProjects] = useState<CityBuilding[]>(projectStorage.getProjects());
@@ -59,6 +66,10 @@ export function App() {
   const [gender, setGender] = useState<CharacterGender>(() => {
     return (localStorage.getItem('fargan_gender') as CharacterGender) || 'male';
   });
+
+  useEffect(() => {
+    localStorage.setItem('fargan_dimension', dimension);
+  }, [dimension]);
 
   useEffect(() => {
     localStorage.setItem('fargan_lang', lang);
@@ -272,6 +283,31 @@ export function App() {
     );
   }
 
+  // =========================================================
+  // MULTI-DIMENSION METAVERSE SWITCHER
+  // =========================================================
+  if (dimension === 'kids') {
+    return (
+      <div className="canvas-wrapper">
+        <KidsWonderWorld 
+          onSwitchDimension={setDimension}
+          lang={lang}
+        />
+      </div>
+    );
+  }
+
+  if (dimension === 'creative') {
+    return (
+      <div className="canvas-wrapper">
+        <CreativeLoungeWorld 
+          onSwitchDimension={setDimension}
+          lang={lang}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="canvas-wrapper">
       <main className="cinematic-frame flex flex-col justify-between">
@@ -303,6 +339,47 @@ export function App() {
 
               {/* Mode Switcher & Global Toggles - Compact on Mobile */}
               <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                {/* 3-Dimension Metaverse Switcher */}
+                <div className="flex bg-slate-900/90 rounded-lg sm:rounded-xl p-0.5 border border-white/10 text-xs">
+                  <button
+                    onClick={() => {
+                      setDimension('business');
+                      playSfx(520, 'sine');
+                    }}
+                    className={`flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer text-[10px] sm:text-[11px] ${
+                      dimension === 'business'
+                        ? 'bg-cyan-500 text-slate-950 shadow-md font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Dimensi Bisnis: Metropolis B2B"
+                  >
+                    <span>🏢</span>
+                    <span className="hidden md:inline">Bisnis</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDimension('kids');
+                      playSfx(780, 'sine');
+                    }}
+                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer text-[10px] sm:text-[11px] text-pink-400 hover:text-pink-300 hover:bg-pink-500/10"
+                    title="Dimensi Anak: Wonderland & Cinema"
+                  >
+                    <span>🧸</span>
+                    <span className="hidden md:inline">Kids</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDimension('creative');
+                      playSfx(660, 'sine');
+                    }}
+                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer text-[10px] sm:text-[11px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                    title="Dimensi Gen-Z: Cafe & Digital Store"
+                  >
+                    <span>☕</span>
+                    <span className="hidden md:inline">Cafe</span>
+                  </button>
+                </div>
+
                 <div className="flex bg-slate-900/90 rounded-lg sm:rounded-xl p-0.5 border border-white/10 text-xs">
                   <button
                     onClick={() => {
@@ -387,6 +464,8 @@ export function App() {
                 onToggleLang={toggleLang}
                 onToggleMode={toggleMode}
                 onToggleGender={toggleGender}
+                dimension={dimension}
+                onSwitchDimension={setDimension}
               />
             </div>
           </div>
@@ -436,6 +515,47 @@ export function App() {
               </div>
 
               <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                {/* 3-Dimension Metaverse Switcher */}
+                <div className="flex bg-slate-900/90 rounded-lg sm:rounded-xl p-0.5 border border-white/10 text-xs">
+                  <button
+                    onClick={() => {
+                      setDimension('business');
+                      playSfx(520, 'sine');
+                    }}
+                    className={`flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer text-[10px] sm:text-[11px] ${
+                      dimension === 'business'
+                        ? 'bg-cyan-500 text-slate-950 shadow-md font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Dimensi Bisnis: Metropolis B2B"
+                  >
+                    <span>🏢</span>
+                    <span className="hidden md:inline">Bisnis</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDimension('kids');
+                      playSfx(780, 'sine');
+                    }}
+                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer text-[10px] sm:text-[11px] text-pink-400 hover:text-pink-300 hover:bg-pink-500/10"
+                    title="Dimensi Anak: Wonderland & Cinema"
+                  >
+                    <span>🧸</span>
+                    <span className="hidden md:inline">Kids</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDimension('creative');
+                      playSfx(660, 'sine');
+                    }}
+                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg font-bold transition-all cursor-pointer text-[10px] sm:text-[11px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                    title="Dimensi Gen-Z: Cafe & Digital Store"
+                  >
+                    <span>☕</span>
+                    <span className="hidden md:inline">Cafe</span>
+                  </button>
+                </div>
+
                 {/* Day / Night Toggle */}
                 <button
                   onClick={toggleMode}

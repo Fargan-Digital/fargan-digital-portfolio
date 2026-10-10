@@ -1,0 +1,867 @@
+import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { 
+  Sparkles, 
+  Volume2, 
+  VolumeX, 
+  Film, 
+  CheckCircle2
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { soundEngine } from '../utils/audioManager';
+import { KIDS_VIDEOS, KIDS_ANIMALS, KIDS_PIANO_NOTES, type KidsVideo, type KidsAnimalFact } from '../data/kidsContent';
+
+interface KidsWonderWorldProps {
+  onSwitchDimension: (dimension: 'business' | 'kids' | 'creative') => void;
+  lang?: 'id' | 'en';
+}
+
+export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimension }) => {
+  const mountRef = useRef<HTMLDivElement>(null);
+
+  // UI States
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
+  const [selectedAnimal, setSelectedAnimal] = useState<KidsAnimalFact | null>(null);
+  const [starsCollected, setStarsCollected] = useState<number>(0);
+  const [showParentsGuide, setShowParentsGuide] = useState(false);
+  const [activePianoNote, setActivePianoNote] = useState<string | null>(null);
+
+  // Three.js References
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const playerRef = useRef<THREE.Group | null>(null);
+  const playerTargetRef = useRef<THREE.Vector3 | null>(null);
+  const clickMarkerRef = useRef<THREE.Mesh | null>(null);
+
+  // Movement keys
+  const keysRef = useRef({ forward: false, backward: false, left: false, right: false, jump: false });
+  const isJumpingRef = useRef(false);
+  const jumpVelocityRef = useRef(0);
+  const starsMeshesRef = useRef<{ mesh: THREE.Group; id: number; collected: boolean }[]>([]);
+
+  useEffect(() => {
+    if (!mountRef.current) return;
+    const container = mountRef.current;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // 1. Scene setup
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+    scene.background = new THREE.Color(0x8ecae6); // Cheerful pastel sky
+    scene.fog = new THREE.FogExp2(0x8ecae6, 0.015);
+
+    // 2. Camera setup
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 300);
+    camera.position.set(0, 14, 24);
+    cameraRef.current = camera;
+
+    // 3. Renderer setup
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // 4. Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff3b0, 1.8);
+    sunLight.position.set(30, 50, 30);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+
+    // Warm hemisphere light
+    const hemiLight = new THREE.HemisphereLight(0x90e0ef, 0x52b788, 0.8);
+    scene.add(hemiLight);
+
+    // 5. Main Island (Soft Round Terrain)
+    const islandGeo = new THREE.CylinderGeometry(36, 42, 6, 48);
+    const islandMat = new THREE.MeshStandardMaterial({
+      color: 0x70e000, // Vibrant cartoon grass
+      roughness: 0.6,
+      metalness: 0.1,
+    });
+    const island = new THREE.Mesh(islandGeo, islandMat);
+    island.position.y = -3;
+    island.receiveShadow = true;
+    scene.add(island);
+
+    // Candy checkered central plaza
+    const plazaGeo = new THREE.CylinderGeometry(14, 14, 0.3, 32);
+    const plazaMat = new THREE.MeshStandardMaterial({
+      color: 0xffd166, // Warm sunny yellow plaza
+      roughness: 0.4,
+    });
+    const plaza = new THREE.Mesh(plazaGeo, plazaMat);
+    plaza.position.y = 0.15;
+    plaza.receiveShadow = true;
+    scene.add(plaza);
+
+    // Click target ground indicator
+    const markerGeo = new THREE.RingGeometry(0.4, 0.8, 32);
+    const markerMat = new THREE.MeshBasicMaterial({ color: 0xff006e, side: THREE.DoubleSide });
+    const clickMarker = new THREE.Mesh(markerGeo, markerMat);
+    clickMarker.rotation.x = -Math.PI / 2;
+    clickMarker.position.y = 0.2;
+    clickMarker.visible = false;
+    scene.add(clickMarker);
+    clickMarkerRef.current = clickMarker;
+
+    // 6. BUILDINGS & STATIONS
+    // STATION 1: Bioskop Teater Cilik (Cinema Pavilion)
+    const cinemaGroup = new THREE.Group();
+    cinemaGroup.position.set(0, 0, -18);
+
+    // Cinema Screen Base & Border
+    const screenBase = new THREE.Mesh(
+      new THREE.BoxGeometry(16, 10, 1.5),
+      new THREE.MeshStandardMaterial({ color: 0xff006e, roughness: 0.3 })
+    );
+    screenBase.position.y = 6;
+    screenBase.castShadow = true;
+    cinemaGroup.add(screenBase);
+
+    // Movie Display Screen (Glows with billboard art)
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 320;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#1D3557';
+      ctx.fillRect(0, 0, 512, 320);
+      ctx.fillStyle = '#E63946';
+      ctx.font = 'bold 36px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🎬 BIOSKOP KARTUN CILIK', 256, 90);
+      ctx.fillStyle = '#F1FAEE';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillText('Klik / Dekati Untuk Menonton!', 256, 150);
+      ctx.font = 'bold 44px sans-serif';
+      ctx.fillText('▶️ PUTAR VIDEO', 256, 230);
+      ctx.fillStyle = '#A8DADC';
+      ctx.font = '18px monospace';
+      ctx.fillText('100% Konten Edukasi Ramah Anak', 256, 280);
+    }
+    const screenTex = new THREE.CanvasTexture(canvas);
+    const screenMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(14, 8),
+      new THREE.MeshBasicMaterial({ map: screenTex })
+    );
+    screenMesh.position.set(0, 6, 0.8);
+    cinemaGroup.add(screenMesh);
+
+    // Decorative Balloon Pillars on Cinema
+    [-8, 8].forEach((bx) => {
+      const pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5, 0.5, 12, 16),
+        new THREE.MeshStandardMaterial({ color: 0xffbe0b })
+      );
+      pillar.position.set(bx, 6, 0);
+      cinemaGroup.add(pillar);
+
+      const balloon = new THREE.Mesh(
+        new THREE.SphereGeometry(1.6, 24, 24),
+        new THREE.MeshStandardMaterial({ color: bx > 0 ? 0x06d6a0 : 0x118ab2, roughness: 0.2 })
+      );
+      balloon.position.set(bx, 12.5, 0);
+      cinemaGroup.add(balloon);
+    });
+    scene.add(cinemaGroup);
+
+    // STATION 2: Piano Pelangi Raksasa (Interactive Floor Piano)
+    const pianoGroup = new THREE.Group();
+    pianoGroup.position.set(-16, 0.1, 0);
+    KIDS_PIANO_NOTES.forEach((note, idx) => {
+      const keyMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 0.3, 7),
+        new THREE.MeshStandardMaterial({ color: note.color, roughness: 0.3 })
+      );
+      keyMesh.position.set((idx - 3.5) * 2.6, 0.1, 0);
+      keyMesh.receiveShadow = true;
+      keyMesh.name = `piano_${note.note}`;
+      pianoGroup.add(keyMesh);
+    });
+    scene.add(pianoGroup);
+
+    // STATION 3: Taman Hewan Safari Mini (Animal Statues)
+    const animalGroup = new THREE.Group();
+    animalGroup.position.set(16, 0, 0);
+    KIDS_ANIMALS.forEach((anim, i) => {
+      const aGroup = new THREE.Group();
+      const angle = (i / KIDS_ANIMALS.length) * Math.PI * 2;
+      aGroup.position.set(Math.cos(angle) * 6, 0, Math.sin(angle) * 6);
+
+      // Animal Pedestal
+      const ped = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.8, 1, 16),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 })
+      );
+      ped.position.y = 0.5;
+      ped.castShadow = true;
+      aGroup.add(ped);
+
+      // Animal Mascot Voxel (Cuboid body)
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 1.8, 1.6),
+        new THREE.MeshStandardMaterial({ color: anim.color, roughness: 0.3 })
+      );
+      body.position.y = 1.9;
+      body.castShadow = true;
+      aGroup.add(body);
+
+      // Cute Ears / Horns
+      const ear1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      ear1.position.set(-0.5, 3.1, 0);
+      const ear2 = ear1.clone();
+      ear2.position.set(0.5, 3.1, 0);
+      aGroup.add(ear1);
+      aGroup.add(ear2);
+
+      animalGroup.add(aGroup);
+    });
+    scene.add(animalGroup);
+
+    // Decorative Lollipop Trees & Giant Mushrooms
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2 + Math.random() * 0.2;
+      const radius = 24 + Math.random() * 8;
+      const tx = Math.cos(angle) * radius;
+      const tz = Math.sin(angle) * radius;
+
+      const treeGroup = new THREE.Group();
+      treeGroup.position.set(tx, 0, tz);
+
+      // Trunk
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3, 0.4, 5, 8),
+        new THREE.MeshStandardMaterial({ color: 0xffffff })
+      );
+      trunk.position.y = 2.5;
+      trunk.castShadow = true;
+      treeGroup.add(trunk);
+
+      // Swirl Lollipop top
+      const candyTop = new THREE.Mesh(
+        new THREE.CylinderGeometry(2, 2, 0.6, 24),
+        new THREE.MeshStandardMaterial({
+          color: [0xff006e, 0x8338ec, 0x3a86ff, 0xffbe0b, 0xfb5607][i % 5],
+          roughness: 0.2,
+        })
+      );
+      candyTop.rotation.x = Math.PI / 2;
+      candyTop.position.y = 5.2;
+      candyTop.castShadow = true;
+      treeGroup.add(candyTop);
+
+      scene.add(treeGroup);
+    }
+
+    // Floating Clouds
+    const cloudsGroup = new THREE.Group();
+    for (let c = 0; c < 8; c++) {
+      const cloud = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(4 + Math.random() * 2, 1),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, opacity: 0.9, transparent: true })
+      );
+      cloud.position.set((Math.random() - 0.5) * 80, 22 + Math.random() * 6, (Math.random() - 0.5) * 80);
+      cloudsGroup.add(cloud);
+    }
+    scene.add(cloudsGroup);
+
+    // 7. GOLDEN STARS QUEST (5 Collectible Floating Stars)
+    const starCoords = [
+      { x: 0, z: -10 },
+      { x: -14, z: 12 },
+      { x: 14, z: 12 },
+      { x: -20, z: -8 },
+      { x: 20, z: -8 },
+    ];
+    starCoords.forEach((coord, idx) => {
+      const sGroup = new THREE.Group();
+      sGroup.position.set(coord.x, 2, coord.z);
+
+      const starMesh = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1, 0),
+        new THREE.MeshStandardMaterial({
+          color: 0xffd166,
+          emissive: 0xffb703,
+          emissiveIntensity: 0.6,
+          metalness: 0.8,
+          roughness: 0.2,
+        })
+      );
+      starMesh.castShadow = true;
+      sGroup.add(starMesh);
+      scene.add(sGroup);
+
+      starsMeshesRef.current.push({ mesh: sGroup, id: idx, collected: false });
+    });
+
+    // 8. CHIBI AVATAR (FARGAN JUNIOR)
+    const player = new THREE.Group();
+    player.position.set(0, 0, 8);
+
+    // Head
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 1.2, 1.2),
+      new THREE.MeshStandardMaterial({ color: 0xffddd2, roughness: 0.4 })
+    );
+    head.position.y = 2.1;
+    head.castShadow = true;
+    player.add(head);
+
+    // Cap / Visor
+    const cap = new THREE.Mesh(
+      new THREE.BoxGeometry(1.3, 0.4, 1.4),
+      new THREE.MeshStandardMaterial({ color: 0x3a86ff, roughness: 0.3 })
+    );
+    cap.position.set(0, 2.7, 0.1);
+    player.add(cap);
+
+    // Cute Eyes
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1d3557 });
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.1), eyeMat);
+    eyeL.position.set(-0.3, 2.2, 0.61);
+    const eyeR = eyeL.clone();
+    eyeR.position.set(0.3, 2.2, 0.61);
+    player.add(eyeL);
+    player.add(eyeR);
+
+    // Cheerful Smile
+    const smile = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), new THREE.MeshBasicMaterial({ color: 0xe63946 }));
+    smile.position.set(0, 1.85, 0.61);
+    player.add(smile);
+
+    // Torso / Body (Bright Yellow Hoodie)
+    const torso = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 1.3, 1.1),
+      new THREE.MeshStandardMaterial({ color: 0xffbe0b, roughness: 0.4 })
+    );
+    torso.position.y = 1.1;
+    torso.castShadow = true;
+    player.add(torso);
+
+    // Blue Shoes / Legs
+    const legGeo = new THREE.BoxGeometry(0.5, 0.6, 0.6);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x1d3557 });
+    const legL = new THREE.Mesh(legGeo, legMat);
+    legL.position.set(-0.35, 0.3, 0);
+    legL.castShadow = true;
+    const legR = legL.clone();
+    legR.position.set(0.35, 0.3, 0);
+    player.add(legL);
+    player.add(legR);
+
+    scene.add(player);
+    playerRef.current = player;
+
+    // 9. CLICK TO MOVE (Tap anywhere on ground)
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      // Don't trigger if tapping on UI overlays
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('.kids-overlay')) return;
+
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+      const rect = container.getBoundingClientRect();
+      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects([island, plaza]);
+
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        playerTargetRef.current = new THREE.Vector3(point.x, 0, point.z);
+
+        if (clickMarkerRef.current) {
+          clickMarkerRef.current.position.set(point.x, 0.2, point.z);
+          clickMarkerRef.current.visible = true;
+        }
+        soundEngine.playCuteHop();
+      }
+    };
+
+    container.addEventListener('pointerdown', handlePointerDown);
+
+    // Keyboard handlers
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keysRef.current.forward = true;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keysRef.current.backward = true;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keysRef.current.left = true;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keysRef.current.right = true;
+      if (e.code === 'Space') {
+        if (!isJumpingRef.current) {
+          isJumpingRef.current = true;
+          jumpVelocityRef.current = 0.32;
+          soundEngine.playJump();
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keysRef.current.forward = false;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keysRef.current.backward = false;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keysRef.current.left = false;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keysRef.current.right = false;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // 10. ANIMATION & GAME LOOP
+    let animationFrameId: number;
+    let clock = new THREE.Clock();
+
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
+
+      // Rotate Clouds gently
+      cloudsGroup.rotation.y = elapsed * 0.02;
+
+      // Animate Stars
+      starsMeshesRef.current.forEach((s) => {
+        if (!s.collected) {
+          s.mesh.rotation.y += delta * 2;
+          s.mesh.position.y = 2 + Math.sin(elapsed * 3 + s.id) * 0.4;
+
+          // Check Player Distance to Star
+          if (playerRef.current) {
+            const dist = playerRef.current.position.distanceTo(s.mesh.position);
+            if (dist < 2.5) {
+              s.collected = true;
+              s.mesh.visible = false;
+              setStarsCollected((prev) => {
+                const next = prev + 1;
+                soundEngine.playStarCollect();
+                confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+                return next;
+              });
+            }
+          }
+        }
+      });
+
+      // Player Movement Logic
+      if (playerRef.current) {
+        let moveX = 0;
+        let moveZ = 0;
+        const speed = 12 * delta;
+
+        // Click to move
+        if (playerTargetRef.current) {
+          const currentPos = new THREE.Vector3(playerRef.current.position.x, 0, playerRef.current.position.z);
+          const dir = new THREE.Vector3().subVectors(playerTargetRef.current, currentPos);
+          const dist = dir.length();
+
+          if (dist > 0.4) {
+            dir.normalize();
+            playerRef.current.position.x += dir.x * speed;
+            playerRef.current.position.z += dir.z * speed;
+            playerRef.current.rotation.y = Math.atan2(dir.x, dir.z);
+
+            // Bouncy Hop while moving
+            legL.rotation.x = Math.sin(elapsed * 14) * 0.6;
+            legR.rotation.x = -Math.sin(elapsed * 14) * 0.6;
+            torso.position.y = 1.1 + Math.abs(Math.sin(elapsed * 14)) * 0.2;
+          } else {
+            playerTargetRef.current = null;
+            if (clickMarkerRef.current) clickMarkerRef.current.visible = false;
+            legL.rotation.x = 0;
+            legR.rotation.x = 0;
+            torso.position.y = 1.1;
+          }
+        } else {
+          // Keyboard controls
+          if (keysRef.current.forward) moveZ -= 1;
+          if (keysRef.current.backward) moveZ += 1;
+          if (keysRef.current.left) moveX -= 1;
+          if (keysRef.current.right) moveX += 1;
+
+          if (moveX !== 0 || moveZ !== 0) {
+            const moveVec = new THREE.Vector3(moveX, 0, moveZ).normalize();
+            playerRef.current.position.x += moveVec.x * speed;
+            playerRef.current.position.z += moveVec.z * speed;
+            playerRef.current.rotation.y = Math.atan2(moveVec.x, moveVec.z);
+
+            legL.rotation.x = Math.sin(elapsed * 14) * 0.6;
+            legR.rotation.x = -Math.sin(elapsed * 14) * 0.6;
+            torso.position.y = 1.1 + Math.abs(Math.sin(elapsed * 14)) * 0.2;
+          } else {
+            legL.rotation.x = 0;
+            legR.rotation.x = 0;
+            torso.position.y = 1.1;
+          }
+        }
+
+        // Jump physics
+        if (isJumpingRef.current) {
+          playerRef.current.position.y += jumpVelocityRef.current;
+          jumpVelocityRef.current -= 0.018; // gravity
+          if (playerRef.current.position.y <= 0) {
+            playerRef.current.position.y = 0;
+            isJumpingRef.current = false;
+            jumpVelocityRef.current = 0;
+          }
+        }
+
+        // Check Cinema Distance (Auto prompt)
+        const distToCinema = playerRef.current.position.distanceTo(cinemaGroup.position);
+        if (distToCinema < 7 && !selectedVideo) {
+          // Proximity to cinema
+        }
+
+        // Check Rainbow Piano collision
+        if (Math.abs(playerRef.current.position.x - (-16)) < 11 && Math.abs(playerRef.current.position.z) < 3.5) {
+          const relativeX = playerRef.current.position.x - (-16);
+          const noteIndex = Math.min(7, Math.max(0, Math.floor((relativeX + 10) / 2.6)));
+          const currentNote = KIDS_PIANO_NOTES[noteIndex];
+          if (currentNote && activePianoNote !== currentNote.note) {
+            setActivePianoNote(currentNote.note);
+            soundEngine.playPianoNote(currentNote.freq);
+          }
+        } else {
+          if (activePianoNote !== null) setActivePianoNote(null);
+        }
+
+        // Camera Follow (Smooth Spring Follow)
+        const targetCamX = playerRef.current.position.x;
+        const targetCamY = playerRef.current.position.y + 11;
+        const targetCamZ = playerRef.current.position.z + 16;
+        camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.06);
+        camera.lookAt(playerRef.current.position.x, playerRef.current.position.y + 1.5, playerRef.current.position.z);
+      }
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      if (!container || !camera || !renderer) return;
+      const nw = container.clientWidth;
+      const nh = container.clientHeight;
+      camera.aspect = nw / nh;
+      camera.updateProjectionMatrix();
+      renderer.setSize(nw, nh);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      container.removeEventListener('pointerdown', handlePointerDown);
+      cancelAnimationFrame(animationFrameId);
+      if (renderer.domElement && container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, []);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden select-none bg-sky-200 font-sans">
+      {/* 3D Canvas Mount */}
+      <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-pointer" />
+
+      {/* TOP HUD: Multi-Dimension Gateway Switcher */}
+      <header className="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-40 flex items-center justify-between gap-2 pointer-events-auto">
+        {/* Left: Dimension Switcher Hub */}
+        <div className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-2xl bg-white/90 backdrop-blur-md shadow-lg border border-pink-300/80">
+          <button
+            onClick={() => onSwitchDimension('business')}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 text-cyan-300 hover:bg-slate-800 text-[11px] sm:text-xs font-bold transition-all shadow cursor-pointer active:scale-95"
+            title="Pindah ke Kota Portofolio Bisnis (Untuk Klien & Brand Owner)"
+          >
+            <span>🏢</span>
+            <span className="hidden md:inline">Kota Bisnis</span>
+          </button>
+
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-amber-500 text-white text-[11px] sm:text-xs font-black shadow-md shadow-pink-500/30 cursor-default"
+          >
+            <span>🧸</span>
+            <span>Dunia Anak</span>
+            <span className="text-[9px] bg-white/30 px-1.5 py-0.2 rounded-full font-mono">AKTIF</span>
+          </button>
+
+          <button
+            onClick={() => onSwitchDimension('creative')}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-purple-900/90 text-purple-200 hover:bg-purple-800 text-[11px] sm:text-xs font-bold transition-all shadow cursor-pointer active:scale-95"
+            title="Pindah ke Cafe Kreatif & Produk Digital (Untuk Remaja)"
+          >
+            <span>☕</span>
+            <span className="hidden md:inline">Cafe Kreatif</span>
+          </button>
+        </div>
+
+        {/* Right: Kids Stats & Parents Guide */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Star Counter */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-400 text-slate-950 font-black text-xs shadow-md border-2 border-white">
+            <span className="text-sm animate-spin" style={{ animationDuration: '6s' }}>⭐</span>
+            <span>{starsCollected} / 5</span>
+          </div>
+
+          {/* Sound Toggle */}
+          <button
+            onClick={() => {
+              const newMuted = soundEngine.toggleMute();
+              setSoundEnabled(!newMuted);
+            }}
+            className="p-2 rounded-2xl bg-white/90 text-slate-800 hover:bg-white shadow border border-amber-300 cursor-pointer active:scale-95 transition-all"
+            title="Suara Musik Ceria"
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4 text-pink-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+          </button>
+
+          {/* Parents Safe Zone Badge */}
+          <button
+            onClick={() => setShowParentsGuide(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow border-2 border-white cursor-pointer active:scale-95 transition-all"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">100% Zona Aman Anak</span>
+          </button>
+        </div>
+      </header>
+
+      {/* FLOATING ACTION PILLS: Quick Jump to Stations */}
+      <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+        <button
+          onClick={() => setSelectedVideo(KIDS_VIDEOS[0])}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-black text-[11px] sm:text-xs shadow-lg shadow-rose-500/30 border-2 border-white cursor-pointer transition-all hover:scale-105 active:scale-95"
+        >
+          <Film className="w-3.5 h-3.5" />
+          <span>Buka Bioskop Kartun 🎬</span>
+        </button>
+
+        <button
+          onClick={() => setSelectedAnimal(KIDS_ANIMALS[0])}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-[11px] sm:text-xs shadow-lg shadow-amber-500/30 border-2 border-white cursor-pointer transition-all hover:scale-105 active:scale-95"
+        >
+          <span>🦁</span>
+          <span>Taman Hewan 🐾</span>
+        </button>
+      </div>
+
+      {/* BOTTOM CONTROL & INSTRUCTION BAR */}
+      <div className="absolute bottom-3 left-3 right-3 z-30 flex items-end justify-between pointer-events-none">
+        {/* Visual Tip Box */}
+        <div className="p-2.5 sm:p-3 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-pink-400 shadow-xl pointer-events-auto max-w-[280px] sm:max-w-xs space-y-1">
+          <div className="flex items-center gap-1.5 text-pink-600 font-black text-xs">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>CARA BERMAIN:</span>
+          </div>
+          <p className="text-[11px] text-slate-700 leading-tight">
+            👉 <strong>Sentuh tanah di mana saja</strong> untuk berlari ke sana! Dekati layar bioskop untuk menonton kartun seru.
+          </p>
+        </div>
+
+        {/* Big On-Screen Jump Button for Kids */}
+        <button
+          onClick={() => {
+            if (!isJumpingRef.current && playerRef.current) {
+              isJumpingRef.current = true;
+              jumpVelocityRef.current = 0.35;
+              soundEngine.playJump();
+            }
+          }}
+          className="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-2xl border-4 border-white cursor-pointer active:scale-90 transition-all"
+        >
+          <span className="text-lg">🚀</span>
+          <span className="text-[9px] font-black uppercase">LOMPAT!</span>
+        </button>
+      </div>
+
+      {/* ======================================================== */}
+      {/* MODAL 1: BIOSKOP TEATER KARTUN (KIDS CINEMA PLAYER) */}
+      {/* ======================================================== */}
+      {selectedVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-3xl rounded-3xl bg-slate-900 border-4 border-pink-500 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="px-4 py-3 bg-gradient-to-r from-pink-600 to-rose-600 flex items-center justify-between text-white flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎬</span>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base leading-tight">BIOSKOP KARTUN &amp; EDUKASI FARGAN JUNIOR</h3>
+                  <p className="text-[10px] text-pink-200">100% Ramah Anak • Tanpa Iklan Dewasa • Terkurasi Penuh</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedVideo(null)}
+                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Video Player */}
+            <div className="relative w-full aspect-video bg-black flex-shrink-0">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${selectedVideo.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                title={selectedVideo.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full border-0"
+              />
+            </div>
+
+            {/* Video Info & Playlist Selector */}
+            <div className="p-4 overflow-y-auto space-y-3 bg-slate-900 text-slate-100 flex-1">
+              <div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 font-bold">
+                  {selectedVideo.badge}
+                </span>
+                <h4 className="text-base sm:text-lg font-black mt-1 text-white">{selectedVideo.title}</h4>
+                <p className="text-xs text-slate-300 mt-1">{selectedVideo.description}</p>
+              </div>
+
+              {/* Playlist Selection */}
+              <div className="pt-2 border-t border-white/10 space-y-2">
+                <div className="text-xs font-mono text-pink-400 font-bold uppercase tracking-wider">
+                  📺 PILIH KARTUN LAINNYA:
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {KIDS_VIDEOS.map((vid) => (
+                    <button
+                      key={vid.id}
+                      onClick={() => setSelectedVideo(vid)}
+                      className={`p-2.5 rounded-2xl flex items-center gap-3 text-left transition-all cursor-pointer border ${
+                        selectedVideo.id === vid.id
+                          ? 'bg-pink-600/20 border-pink-500 text-white'
+                          : 'bg-slate-800/80 hover:bg-slate-800 border-white/5 text-slate-300'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center text-xl shrink-0">
+                        {vid.thumbnail}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold truncate text-white">{vid.title}</div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">{vid.duration} • {vid.badge}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 2: TAMAN HEWAN SAFARI GEMOY */}
+      {/* ======================================================== */}
+      {selectedAnimal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-white border-4 border-amber-400 shadow-2xl p-6 text-slate-900 relative space-y-4">
+            <button
+              onClick={() => setSelectedAnimal(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600 cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-amber-100 flex items-center justify-center text-4xl shadow-inner border-2 border-amber-300">
+                {selectedAnimal.emoji}
+              </div>
+              <h3 className="text-xl font-black">{selectedAnimal.name}</h3>
+              <div className="inline-block px-3 py-1 rounded-full bg-amber-500 text-white font-black text-xs">
+                Suara: "{selectedAnimal.soundName}"
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs sm:text-sm text-slate-800 leading-relaxed">
+              💡 <strong>Tahukah Kamu?</strong>
+              <p className="mt-1">{selectedAnimal.funFact}</p>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 pt-2">
+              {KIDS_ANIMALS.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => {
+                    setSelectedAnimal(a);
+                    soundEngine.playCuteHop();
+                  }}
+                  className={`p-2 rounded-2xl flex flex-col items-center gap-1 border transition-all cursor-pointer ${
+                    selectedAnimal.id === a.id ? 'bg-amber-400 border-amber-500 scale-105' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-xl">{a.emoji}</span>
+                  <span className="text-[10px] font-bold truncate">{a.name.split(' ')[0]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 3: PANDUAN ORANG TUA (PARENTS SAFETY GUARANTEE) */}
+      {/* ======================================================== */}
+      {showParentsGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-lg rounded-3xl bg-white border-4 border-emerald-500 shadow-2xl p-6 text-slate-900 relative space-y-4">
+            <button
+              onClick={() => setShowParentsGuide(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600 cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-2.5 border-b border-slate-200 pb-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
+                🛡️
+              </div>
+              <div>
+                <h3 className="text-base font-black">GARANSI KEAMANAN UNTUK ORANG TUA</h3>
+                <p className="text-[11px] text-emerald-700 font-mono">Fargan Kids Wonder World Ecosystem</p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 text-xs text-slate-700 leading-relaxed">
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-2">
+                <span className="text-emerald-600 font-bold text-sm">✅</span>
+                <span><strong>Bebas Algoritma Liar:</strong> Tidak ada video otomatis yang melenceng ke konten aneh atau berbahaya.</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-2">
+                <span className="text-emerald-600 font-bold text-sm">✅</span>
+                <span><strong>Bebas Iklan Dewasa &amp; Judi:</strong> Menggunakan pemutar YouTube Privacy-Enhanced tanpa pelacakan agresif.</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-2">
+                <span className="text-emerald-600 font-bold text-sm">✅</span>
+                <span><strong>Stimulasi Motorik &amp; Kognitif:</strong> Anak diajak mengeksplorasi dunia 3D, memencet tuts musik, dan belajar fakta sains.</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowParentsGuide(false)}
+              className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-wider cursor-pointer transition-all shadow"
+            >
+              SAYA MENGERTI, BIARKAN ANAK SAYA BERMAIN ➔
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

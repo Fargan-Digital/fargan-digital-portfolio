@@ -40,6 +40,8 @@ interface RobloxCityWorldProps {
   onToggleLang?: () => void;
   onToggleMode?: () => void;
   onToggleGender?: () => void;
+  dimension?: 'business' | 'kids' | 'creative';
+  onSwitchDimension?: (dim: 'business' | 'kids' | 'creative') => void;
 }
 
 export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({ 
@@ -48,7 +50,8 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
   projects,
   lang = 'id',
   mode = 'night',
-  gender = 'male'
+  gender = 'male',
+  onSwitchDimension
 }) => {
   const t = translations[lang];
   const currentProjects = projects && projects.length > 0 ? projects : portfolioProjects;
@@ -1630,6 +1633,31 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               </button>
             ))}
           </div>
+
+          {onSwitchDimension && (
+            <div className="pt-2 border-t border-white/10 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setMobileRadarOpen(false);
+                  onSwitchDimension('kids');
+                }}
+                className="flex-1 py-1.5 px-2 rounded-lg bg-pink-500/15 border border-pink-500/40 text-pink-300 font-bold text-[10px] flex items-center justify-center gap-1 active:scale-95"
+              >
+                <span>🧸</span>
+                <span>Dunia Anak</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMobileRadarOpen(false);
+                  onSwitchDimension('creative');
+                }}
+                className="flex-1 py-1.5 px-2 rounded-lg bg-purple-500/15 border border-purple-500/40 text-purple-300 font-bold text-[10px] flex items-center justify-center gap-1 active:scale-95"
+              >
+                <span>☕</span>
+                <span>Cafe Gen-Z</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1669,6 +1697,28 @@ export const RobloxCityWorld: React.FC<RobloxCityWorldProps> = ({
               <span className="truncate text-[11px]">{b.name}</span>
             </button>
           ))}
+
+          {onSwitchDimension && (
+            <div className="pt-2 mt-2 border-t border-white/10 space-y-1">
+              <div className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider px-1">
+                Lompat Dimensi
+              </div>
+              <button
+                onClick={() => onSwitchDimension('kids')}
+                className="w-full text-left px-2 py-1.5 rounded-lg flex items-center gap-2 bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 font-bold text-[11px] transition-all cursor-pointer"
+              >
+                <span>🧸</span>
+                <span className="truncate">Dunia Anak (Kids)</span>
+              </button>
+              <button
+                onClick={() => onSwitchDimension('creative')}
+                className="w-full text-left px-2 py-1.5 rounded-lg flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold text-[11px] transition-all cursor-pointer"
+              >
+                <span>☕</span>
+                <span className="truncate">Cafe Kreatif (Gen-Z)</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
