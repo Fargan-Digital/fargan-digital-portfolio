@@ -98,6 +98,8 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   const isJumpingRef = useRef(false);
   const jumpVelocityRef = useRef(0);
   const starsMeshesRef = useRef<{ mesh: THREE.Group; id: number; collected: boolean }[]>([]);
+  const isNightRef = useRef(isNightTime);
+  isNightRef.current = isNightTime;
 
   // Web Speech API Voice Actor Synthesis for Character
   const speakVoice = (text: string, pitch = 1.2) => {
@@ -221,19 +223,42 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     );
     scene.add(hemiLight);
 
-    // If Night Mode: Add warm glowing moon lantern in sky
-    if (isNight) {
-      const moonMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(3.5, 24, 24),
-        new THREE.MeshBasicMaterial({ color: 0xfffae0 })
-      );
-      moonMesh.position.set(-35, 42, -45);
-      scene.add(moonMesh);
+    // Glowing Moon in Night Sky
+    const moonMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(3.8, 24, 24),
+      new THREE.MeshBasicMaterial({ color: 0xfffae0 })
+    );
+    moonMesh.position.set(-35, 42, -45);
+    moonMesh.visible = isNight;
+    scene.add(moonMesh);
 
-      const moonGlow = new THREE.PointLight(0xfffae0, 2, 80);
-      moonGlow.position.set(-35, 42, -45);
-      scene.add(moonGlow);
+    const moonGlow = new THREE.PointLight(0xfffae0, isNight ? 2 : 0, 80);
+    moonGlow.position.set(-35, 42, -45);
+    moonGlow.visible = isNight;
+    scene.add(moonGlow);
+
+    // Night Stars Field (Twinkling starry dome in night sky)
+    const starsCount = 120;
+    const starsGeo = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starsCount * 3);
+    for (let si = 0; si < starsCount; si++) {
+      const sTheta = Math.random() * Math.PI * 2;
+      const sPhi = Math.acos(Math.random() * 0.8 + 0.1); // Upper hemisphere
+      const sDist = 110 + Math.random() * 30;
+      starPositions[si * 3] = sDist * Math.sin(sPhi) * Math.cos(sTheta);
+      starPositions[si * 3 + 1] = sDist * Math.cos(sPhi) + 15;
+      starPositions[si * 3 + 2] = sDist * Math.sin(sPhi) * Math.sin(sTheta);
     }
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starsMat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 1.8,
+      transparent: true,
+      opacity: isNight ? 0.9 : 0
+    });
+    const starrySky = new THREE.Points(starsGeo, starsMat);
+    starrySky.visible = isNight;
+    scene.add(starrySky);
 
     // 5. Grand Disneyland Wonderland Island (Vast Safe Kingdom - Radius 75)
     const islandRadius = 75;
@@ -587,6 +612,7 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     scene.add(charactersGroup);
 
     // Decorative Lollipop Trees & Giant Mushrooms
+    const parkLanterns: THREE.PointLight[] = [];
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2 + Math.random() * 0.2;
       const radius = 24 + Math.random() * 8;
@@ -617,6 +643,12 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       candyTop.position.y = 5.2;
       candyTop.castShadow = true;
       treeGroup.add(candyTop);
+
+      // Fairy Lantern Light under each lollipop tree (Glows warmly at night)
+      const lanternLight = new THREE.PointLight(0xfff3b0, isNight ? 1.2 : 0, 16);
+      lanternLight.position.y = 4.2;
+      treeGroup.add(lanternLight);
+      parkLanterns.push(lanternLight);
 
       scene.add(treeGroup);
     }
@@ -1360,14 +1392,72 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     // 10. ANIMATION & GAME LOOP
     let animationFrameId: number;
     let clock = new THREE.Clock();
+    let currentNightFactor = isNight ? 1 : 0;
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
+      // Dynamically lerp between Day and Night mode smoothly
+      const targetNightFactor = isNightRef.current ? 1 : 0;
+      if (Math.abs(currentNightFactor - targetNightFactor) > 0.005) {
+        currentNightFactor += (targetNightFactor - currentNightFactor) * delta * 2.0;
+
+        // Day Sky (0x8ecae6) -> Night Sky (0x0b132b)
+        const daySky = new THREE.Color(0x8ecae6);
+        const nightSky = new THREE.Color(0x0b132b);
+        const lerpedSky = daySky.clone().lerp(nightSky, currentNightFactor);
+        scene.background = lerpedSky;
+        if (scene.fog) {
+          scene.fog.color = lerpedSky;
+          (scene.fog as THREE.FogExp2).density = 0.015 + currentNightFactor * 0.004;
+        }
+
+        // Ambient light: 0xffffff (1.4) -> 0x3d5a80 (0.85)
+        const dayAmb = new THREE.Color(0xffffff);
+        const nightAmb = new THREE.Color(0x3d5a80);
+        ambientLight.color = dayAmb.clone().lerp(nightAmb, currentNightFactor);
+        ambientLight.intensity = 1.4 - currentNightFactor * 0.55;
+
+        // Sun / Directional light: 0xfff3b0 (1.8) -> 0x70a9a1 (0.8)
+        const daySun = new THREE.Color(0xfff3b0);
+        const nightSun = new THREE.Color(0x70a9a1);
+        sunLight.color = daySun.clone().lerp(nightSun, currentNightFactor);
+        sunLight.intensity = 1.8 - currentNightFactor * 1.0;
+
+        // Hemisphere light: Day (0x90e0ef / 0x52b788) -> Night (0x1d3557 / 0x0f172a)
+        const dayHemiSky = new THREE.Color(0x90e0ef);
+        const nightHemiSky = new THREE.Color(0x1d3557);
+        hemiLight.color = dayHemiSky.clone().lerp(nightHemiSky, currentNightFactor);
+
+        // Moon & Glowing Stars visibility and glow
+        moonMesh.visible = currentNightFactor > 0.05;
+        moonGlow.visible = currentNightFactor > 0.05;
+        moonGlow.intensity = currentNightFactor * 2.2;
+        starrySky.visible = currentNightFactor > 0.05;
+        starsMat.opacity = currentNightFactor * 0.95;
+
+        // Fairy Lanterns on Lollipop trees
+        parkLanterns.forEach((l) => {
+          l.intensity = currentNightFactor * 1.35;
+        });
+
+        // Fireflies visibility
+        fireflies.forEach((ff) => {
+          ff.mesh.visible = currentNightFactor > 0.15;
+        });
+
+        // Cloud visibility in night sky
+        cloudsGroup.children.forEach((c) => {
+          const mat = (c as THREE.Mesh).material as THREE.MeshStandardMaterial;
+          if (mat) mat.opacity = 0.9 - currentNightFactor * 0.5;
+        });
+      }
+
       // Rotate Clouds gently
       cloudsGroup.rotation.y = elapsed * 0.02;
+      starrySky.rotation.y = elapsed * 0.005;
 
       // Animate Stars
       starsMeshesRef.current.forEach((s) => {
@@ -1723,7 +1813,9 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   }, []);
 
   return (
-    <div className="relative w-full h-full overflow-hidden select-none bg-sky-200 font-sans">
+    <div className={`relative w-full h-full overflow-hidden select-none font-sans transition-colors duration-1000 ${
+      isNightTime ? 'bg-slate-950 text-slate-100' : 'bg-sky-200 text-slate-900'
+    }`}>
       {/* 3D Canvas Mount */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-pointer" />
 
