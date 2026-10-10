@@ -1,17 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { 
-  Sparkles, 
   Volume2, 
-  VolumeX, 
-  Film, 
   CheckCircle2,
   Volume1,
-  RotateCcw,
-  RotateCw,
-  ZoomIn,
-  ZoomOut,
-  Navigation
+  Moon,
+  Sun
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundEngine } from '../utils/audioManager';
@@ -34,18 +28,50 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
   const mountRef = useRef<HTMLDivElement>(null);
 
   // UI States
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // Sound is locked ON continuously for friendly voice interaction
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
   const [selectedAnimal, setSelectedAnimal] = useState<KidsAnimalFact | null>(null);
   const [activeCharacter, setActiveCharacter] = useState<KidsCharacter | null>(null);
   const [dialogueTypedText, setDialogueTypedText] = useState<string>('');
   const [isDialogueTypingDone, setIsDialogueTypingDone] = useState<boolean>(false);
-  const [starsCollected, setStarsCollected] = useState<number>(0);
   const [showParentsGuide, setShowParentsGuide] = useState(false);
   const [activePianoNote, setActivePianoNote] = useState<string | null>(null);
 
+  // Real-time Clock (WIB & WITA) with automatic night mode from 19:00 - 05:00
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
+  const [isNightTime, setIsNightTime] = useState<boolean>(() => {
+    const hr = new Date().getHours();
+    return hr >= 19 || hr < 5;
+  });
+
+  useEffect(() => {
+    // Sound is permanently unlocked and unmuted
+    soundEngine.setMuted(false);
+
+    const updateClock = () => {
+      const now = new Date();
+      const hr = now.getHours();
+      setIsNightTime(hr >= 19 || hr < 5);
+
+      // Formatter for WIB (UTC+7) or WITA (UTC+8) based on user's local Indonesian timezone
+      const timeFormatter = new Intl.DateTimeFormat('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+      const tzOffset = -now.getTimezoneOffset() / 60;
+      const tzLabel = tzOffset === 8 ? 'WITA' : tzOffset === 9 ? 'WIT' : 'WIB';
+      setCurrentTimeStr(`${timeFormatter.format(now)} ${tzLabel}`);
+    };
+
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Character meshes references for proximity & click
-  const characterMeshesRef = useRef<{ group: THREE.Group; char: KidsCharacter; nametagMesh: THREE.Mesh }[]>([]);
+  const characterMeshesRef = useRef<{ group: THREE.Group; char: KidsCharacter; nametagMesh: THREE.Mesh; waveArm?: THREE.Mesh }[]>([]);
   const lastInteractedCharIdRef = useRef<string | null>(null);
 
   // Three.js References
@@ -143,11 +169,17 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // 1. Scene setup
+    // 1. Scene setup with Day / Night Mode adaptation
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    scene.background = new THREE.Color(0x8ecae6); // Cheerful pastel sky
-    scene.fog = new THREE.FogExp2(0x8ecae6, 0.015);
+    const currentHour = new Date().getHours();
+    const isNight = currentHour >= 19 || currentHour < 5;
+
+    // Day: Cheerful pastel sky (0x8ecae6). Night: Deep twilight magical navy (0x0b132b)
+    const skyColor = isNight ? 0x0b132b : 0x8ecae6;
+    const fogDensity = isNight ? 0.018 : 0.015;
+    scene.background = new THREE.Color(skyColor);
+    scene.fog = new THREE.FogExp2(skyColor, fogDensity);
 
     // 2. Camera setup
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 300);
@@ -163,21 +195,39 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    // 4. Lighting: Day Sun vs Night Moon & Disney Twinkle Lights
+    const ambientLight = new THREE.AmbientLight(isNight ? 0x3d5a80 : 0xffffff, isNight ? 0.9 : 1.4);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xfff3b0, 1.8);
-    sunLight.position.set(30, 50, 30);
+    const sunLight = new THREE.DirectionalLight(isNight ? 0x70a9a1 : 0xfff3b0, isNight ? 0.8 : 1.8);
+    sunLight.position.set(isNight ? -20 : 30, 50, isNight ? -20 : 30);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
     sunLight.shadow.mapSize.height = 1024;
     sunLight.shadow.bias = -0.0005;
     scene.add(sunLight);
 
-    // Warm hemisphere light
-    const hemiLight = new THREE.HemisphereLight(0x90e0ef, 0x52b788, 0.8);
+    // Warm hemisphere light (Sunlit meadow vs Moonlight glimmer)
+    const hemiLight = new THREE.HemisphereLight(
+      isNight ? 0x1d3557 : 0x90e0ef,
+      isNight ? 0x0f172a : 0x52b788,
+      isNight ? 0.6 : 0.8
+    );
     scene.add(hemiLight);
+
+    // If Night Mode: Add warm glowing moon lantern in sky
+    if (isNight) {
+      const moonMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(3.5, 24, 24),
+        new THREE.MeshBasicMaterial({ color: 0xfffae0 })
+      );
+      moonMesh.position.set(-35, 42, -45);
+      scene.add(moonMesh);
+
+      const moonGlow = new THREE.PointLight(0xfffae0, 2, 80);
+      moonGlow.position.set(-35, 42, -45);
+      scene.add(moonGlow);
+    }
 
     // 5. Grand Disneyland Wonderland Island (Expanded Safe Territory)
     const islandRadius = 58;
@@ -366,7 +416,8 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
     scene.add(animalGroup);
 
     // =========================================================
-    // STATION 4: 5 DISNEYLAND CHARACTERS (SAHABAT FARGAN KIDS)
+    // STATION 4: 5 DISNEYLAND CHARACTERS (CS SAHABAT FARGAN KIDS)
+    // Formatted with full humanoid Roblox/CS body structure (Head, Suit Torso, Tie, Waving Arm, Legs)
     // =========================================================
     characterMeshesRef.current = [];
     const charactersGroup = new THREE.Group();
@@ -377,100 +428,154 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
 
       // Pedestal Ring Stage with Star Glow
       const stageRing = new THREE.Mesh(
-        new THREE.CylinderGeometry(2, 2.3, 0.4, 24),
+        new THREE.CylinderGeometry(2.2, 2.6, 0.35, 24),
         new THREE.MeshStandardMaterial({ color: c.color, roughness: 0.3 })
       );
-      stageRing.position.y = 0.2;
+      stageRing.position.y = 0.18;
       stageRing.receiveShadow = true;
       charGroup.add(stageRing);
 
       const centerDisc = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.5, 1.5, 0.45, 24),
+        new THREE.CylinderGeometry(1.6, 1.6, 0.4, 24),
         new THREE.MeshStandardMaterial({ color: c.secondaryColor, roughness: 0.2 })
       );
-      centerDisc.position.y = 0.22;
+      centerDisc.position.y = 0.2;
       charGroup.add(centerDisc);
 
-      // Character Model Body
-      const cBody = new THREE.Mesh(
-        new THREE.BoxGeometry(1.6, 1.8, 1.2),
-        new THREE.MeshStandardMaterial({ color: c.secondaryColor, roughness: 0.3 })
-      );
-      cBody.position.y = 1.6;
-      cBody.castShadow = true;
-      charGroup.add(cBody);
+      // Humanoid Materials
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xFAD090, roughness: 0.5 });
+      const outfitMat = new THREE.MeshStandardMaterial({ color: c.color, roughness: 0.35 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.5 });
+      const neonMat = new THREE.MeshStandardMaterial({ 
+        color: c.secondaryColor, 
+        emissive: c.secondaryColor, 
+        emissiveIntensity: 0.5 
+      });
 
-      // Character Head
-      const cHead = new THREE.Mesh(
-        new THREE.BoxGeometry(1.4, 1.3, 1.3),
-        new THREE.MeshStandardMaterial({ color: c.color, roughness: 0.3 })
-      );
-      cHead.position.y = 3.0;
+      // 1. Head with Canvas Face Texture (Cartoon Eyes, Sparkles, Warm Smile)
+      const faceCanvas = document.createElement('canvas');
+      faceCanvas.width = 128;
+      faceCanvas.height = 128;
+      const fctx = faceCanvas.getContext('2d');
+      if (fctx) {
+        fctx.fillStyle = '#FAD090';
+        fctx.fillRect(0, 0, 128, 128);
+        fctx.fillStyle = '#0F172A';
+        // Big cartoon eyes
+        fctx.fillRect(28, 38, 20, 26);
+        fctx.fillRect(80, 38, 20, 26);
+        // White catchlight
+        fctx.fillStyle = '#FFFFFF';
+        fctx.fillRect(36, 42, 8, 10);
+        fctx.fillRect(88, 42, 8, 10);
+        // Rosy cheeks
+        fctx.fillStyle = '#FF8DA1';
+        fctx.beginPath();
+        fctx.arc(28, 76, 10, 0, Math.PI * 2);
+        fctx.arc(100, 76, 10, 0, Math.PI * 2);
+        fctx.fill();
+        // Friendly smile
+        fctx.strokeStyle = '#D90429';
+        fctx.lineWidth = 6;
+        fctx.beginPath();
+        fctx.arc(64, 84, 18, 0.1 * Math.PI, 0.9 * Math.PI);
+        fctx.stroke();
+      }
+      const faceTex = new THREE.CanvasTexture(faceCanvas);
+      const headMatArray = [
+        skinMat, skinMat, skinMat, skinMat,
+        new THREE.MeshStandardMaterial({ map: faceTex }),
+        skinMat
+      ];
+      const cHead = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.85), headMatArray);
+      cHead.position.y = 2.15;
       cHead.castShadow = true;
       charGroup.add(cHead);
 
-      // Cute Big Cartoon Eyes
-      const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.1), new THREE.MeshBasicMaterial({ color: 0x1d3557 }));
-      eyeL.position.set(-0.35, 3.1, 0.66);
-      const eyeR = eyeL.clone();
-      eyeR.position.set(0.35, 3.1, 0.66);
-      charGroup.add(eyeL);
-      charGroup.add(eyeR);
+      // Cute Disney / Kid Cap with character color
+      const cCap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.95, 0.25, 1.05),
+        new THREE.MeshStandardMaterial({ color: c.secondaryColor, roughness: 0.3 })
+      );
+      cCap.position.set(0, 2.62, 0.05);
+      charGroup.add(cCap);
 
-      // Sparkly Pupils
-      const pupilL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      pupilL.position.set(-0.38, 3.16, 0.71);
-      const pupilR = pupilL.clone();
-      pupilR.position.set(0.32, 3.16, 0.71);
-      charGroup.add(pupilL);
-      charGroup.add(pupilR);
+      // 2. Torso (Smart Uniform / Mascot Outfit)
+      const cTorso = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.25, 0.65), outfitMat);
+      cTorso.position.y = 1.15;
+      cTorso.castShadow = true;
+      charGroup.add(cTorso);
 
-      // Cute Smile
-      const cSmile = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.1), new THREE.MeshBasicMaterial({ color: 0xd90429 }));
-      cSmile.position.set(0, 2.7, 0.66);
-      charGroup.add(cSmile);
+      // Star Badge / Tie on chest
+      const cBadge = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.08), neonMat);
+      cBadge.position.set(0, 1.25, 0.36);
+      charGroup.add(cBadge);
 
-      // Floating Hologram Nametag Canvas
+      // 3. Humanoid Arms (Left Arm waves continuously to greet kids)
+      const armGeo = new THREE.BoxGeometry(0.4, 1.1, 0.45);
+      const leftArm = new THREE.Mesh(armGeo, outfitMat);
+      leftArm.position.set(-0.85, 1.15, 0);
+      leftArm.castShadow = true;
+      charGroup.add(leftArm);
+
+      const rightArm = new THREE.Mesh(armGeo, outfitMat);
+      rightArm.position.set(0.85, 1.15, 0);
+      rightArm.castShadow = true;
+      charGroup.add(rightArm);
+
+      // 4. Humanoid Legs
+      const legGeo = new THREE.BoxGeometry(0.48, 0.95, 0.5);
+      const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+      leftLeg.position.set(-0.3, 0.35, 0);
+      leftLeg.castShadow = true;
+      charGroup.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+      rightLeg.position.set(0.3, 0.35, 0);
+      rightLeg.castShadow = true;
+      charGroup.add(rightLeg);
+
+      // 5. Floating Billboard Nametag above Head
       const tagCanvas = document.createElement('canvas');
-      tagCanvas.width = 256;
-      tagCanvas.height = 128;
+      tagCanvas.width = 300;
+      tagCanvas.height = 110;
       const tagCtx = tagCanvas.getContext('2d');
       if (tagCtx) {
-        tagCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        tagCtx.roundRect(4, 4, 248, 120, 24);
+        tagCtx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+        tagCtx.roundRect(4, 4, 292, 102, 22);
         tagCtx.fill();
-        tagCtx.strokeStyle = '#FF006E';
+        tagCtx.strokeStyle = `#${c.color.toString(16).padStart(6, '0')}`;
         tagCtx.lineWidth = 6;
         tagCtx.stroke();
 
         tagCtx.fillStyle = '#0F172A';
         tagCtx.font = 'bold 26px sans-serif';
         tagCtx.textAlign = 'center';
-        tagCtx.fillText(`${c.avatar} ${c.name.split(' ')[0]}`, 128, 50);
+        tagCtx.fillText(`${c.avatar} ${c.name.split(' ')[0]}`, 150, 44);
 
-        tagCtx.fillStyle = '#E11D48';
-        tagCtx.font = 'bold 20px sans-serif';
-        tagCtx.fillText('Klik / Dekati!', 128, 92);
+        tagCtx.fillStyle = `#${c.secondaryColor.toString(16).padStart(6, '0')}`;
+        tagCtx.font = 'bold 18px monospace';
+        tagCtx.fillText(`[ ${c.role.split('—')[0].trim()} ]`, 150, 80);
       }
       const tagTex = new THREE.CanvasTexture(tagCanvas);
       const tagMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(3.2, 1.6),
+        new THREE.PlaneGeometry(2.8, 1.05),
         new THREE.MeshBasicMaterial({ map: tagTex, transparent: true, side: THREE.DoubleSide })
       );
-      tagMesh.position.set(0, 4.4, 0);
+      tagMesh.position.set(0, 3.4, 0);
       charGroup.add(tagMesh);
 
-      // Click Interaction Anchor Mesh
+      // Click Interaction Anchor Mesh (Clicking anywhere on character or stage directs child to walk towards character)
       const clickHitbox = new THREE.Mesh(
-        new THREE.CylinderGeometry(2, 2, 4.5, 12),
+        new THREE.CylinderGeometry(2.2, 2.2, 3.8, 12),
         new THREE.MeshBasicMaterial({ visible: false })
       );
-      clickHitbox.position.y = 2.2;
+      clickHitbox.position.y = 1.9;
       clickHitbox.userData = { character: c };
       charGroup.add(clickHitbox);
 
       charactersGroup.add(charGroup);
-      characterMeshesRef.current.push({ group: charGroup, char: c, nametagMesh: tagMesh });
+      characterMeshesRef.current.push({ group: charGroup, char: c, nametagMesh: tagMesh, waveArm: leftArm });
     });
 
     scene.add(charactersGroup);
@@ -549,6 +654,132 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       scene.add(sGroup);
 
       starsMeshesRef.current.push({ mesh: sGroup, id: idx, collected: false });
+    });
+
+    // =========================================================
+    // 7B. DISNEYLAND PARADE: CUTE CARS & FLYING PATROL DRONES
+    // Cars cruise smoothly around the promenade ring; Drones soar overhead
+    // =========================================================
+    const paradeCars: { mesh: THREE.Group; baseAngle: number; speed: number; radius: number }[] = [];
+
+    const createKidsCar = (bodyColor: number, accentColor: number) => {
+      const car = new THREE.Group();
+
+      // Rounded Cute Car Body
+      const cBody = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 0.9, 1.4),
+        new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.25 })
+      );
+      cBody.position.y = 0.55;
+      cBody.castShadow = true;
+      car.add(cBody);
+
+      // Cute Canopy / Bubble Roof
+      const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(1.3, 0.65, 1.2),
+        new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.1, transparent: true, opacity: 0.85 })
+      );
+      roof.position.set(-0.1, 1.25, 0);
+      car.add(roof);
+
+      // Cartoon Wheels (4 big cute wheels)
+      const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.6 });
+      const wheelPositions = [
+        [0.7, 0.35, 0.75],
+        [-0.7, 0.35, 0.75],
+        [0.7, 0.35, -0.75],
+        [-0.7, 0.35, -0.75],
+      ];
+      wheelPositions.forEach(([wx, wy, wz]) => {
+        const w = new THREE.Mesh(wheelGeo, wheelMat);
+        w.rotation.x = Math.PI / 2;
+        w.position.set(wx, wy, wz);
+        car.add(w);
+      });
+
+      // Cheerful Cartoon Headlights
+      const lightGeo = new THREE.SphereGeometry(0.18, 12, 12);
+      const lightMat = new THREE.MeshBasicMaterial({ color: 0xFFF3B0 });
+      const hl1 = new THREE.Mesh(lightGeo, lightMat);
+      hl1.position.set(1.12, 0.6, 0.42);
+      const hl2 = hl1.clone();
+      hl2.position.set(1.12, 0.6, -0.42);
+      car.add(hl1, hl2);
+
+      // Star Flag on car antenna
+      const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8), new THREE.MeshStandardMaterial({ color: 0xFFD166 }));
+      flagPole.position.set(-0.85, 1.4, 0);
+      car.add(flagPole);
+
+      const flag = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 4), new THREE.MeshBasicMaterial({ color: accentColor }));
+      flag.rotation.z = -Math.PI / 2;
+      flag.position.set(-0.6, 1.85, 0);
+      car.add(flag);
+
+      return car;
+    };
+
+    // 4 Parade Cars driving along promenade radius 33
+    const carPalette = [
+      { body: 0xFF006E, accent: 0xFFBE0B, speed: 0.35, radius: 32 },
+      { body: 0x3A86FF, accent: 0xFF006E, speed: 0.42, radius: 34 },
+      { body: 0xFB5607, accent: 0x8338EC, speed: -0.32, radius: 33 },
+      { body: 0x06D6A0, accent: 0xFFD166, speed: -0.38, radius: 35 },
+    ];
+    carPalette.forEach((cp, idx) => {
+      const carMesh = createKidsCar(cp.body, cp.accent);
+      const baseAngle = (idx / carPalette.length) * Math.PI * 2;
+      carMesh.position.set(Math.cos(baseAngle) * cp.radius, 0.1, Math.sin(baseAngle) * cp.radius);
+      scene.add(carMesh);
+      paradeCars.push({ mesh: carMesh, baseAngle, speed: cp.speed, radius: cp.radius });
+    });
+
+    // 3 Sky Patrol Drones flying overhead (Whimsical quadcopter design)
+    const skyDrones: { group: THREE.Group; speed: number; radiusX: number; radiusZ: number; height: number }[] = [];
+    const droneColors = [0xFF006E, 0x00E5FF, 0xFFBE0B];
+
+    droneColors.forEach((dColor, idx) => {
+      const droneGroup = new THREE.Group();
+      const dBody = new THREE.Mesh(
+        new THREE.SphereGeometry(0.65, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.2 })
+      );
+      droneGroup.add(dBody);
+
+      // Glowing LED eye visor
+      const eyeVisor = new THREE.Mesh(
+        new THREE.BoxGeometry(0.6, 0.25, 0.5),
+        new THREE.MeshBasicMaterial({ color: dColor })
+      );
+      eyeVisor.position.set(0, 0.1, 0.4);
+      droneGroup.add(eyeVisor);
+
+      // 4 Rotor Arms with spinning propeller rings
+      const armMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+      const ringMat = new THREE.MeshBasicMaterial({ color: dColor, side: THREE.DoubleSide });
+      const ringGeo = new THREE.RingGeometry(0.28, 0.42, 16);
+
+      [[-0.65, -0.65], [0.65, -0.65], [-0.65, 0.65], [0.65, 0.65]].forEach(([rx, rz]) => {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 8), armMat);
+        arm.rotation.z = Math.PI / 2;
+        arm.position.set(rx * 0.5, 0, rz * 0.5);
+        droneGroup.add(arm);
+
+        const r = new THREE.Mesh(ringGeo, ringMat);
+        r.rotation.x = Math.PI / 2;
+        r.position.set(rx, 0.18, rz);
+        droneGroup.add(r);
+      });
+
+      scene.add(droneGroup);
+      skyDrones.push({
+        group: droneGroup,
+        speed: 0.4 + idx * 0.15,
+        radiusX: 20 + idx * 8,
+        radiusZ: 22 + idx * 7,
+        height: 12 + idx * 3
+      });
     });
 
     // 8. CHIBI AVATAR (FARGAN JUNIOR)
@@ -754,7 +985,7 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
 
       raycaster.setFromCamera(mouse, camera);
 
-      // Check if clicking directly on a Character
+      // Check if clicking directly on a Character (Player walks toward character, only opens dialogue inside proximity)
       const charHits = raycaster.intersectObjects(charactersGroup.children, true);
       if (charHits.length > 0) {
         let hitObj: THREE.Object3D | null = charHits[0].object;
@@ -763,8 +994,13 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
         }
         if (hitObj && hitObj.userData?.character) {
           const charData = hitObj.userData.character as KidsCharacter;
-          setActiveCharacter(charData);
-          soundEngine.playProximityChime();
+          // Set movement target right near the character stage
+          playerTargetRef.current = new THREE.Vector3(charData.position[0], 0, charData.position[2]);
+          if (clickMarkerRef.current) {
+            clickMarkerRef.current.position.set(charData.position[0], 0.22, charData.position[2]);
+            clickMarkerRef.current.visible = true;
+          }
+          soundEngine.playCuteHop();
           return;
         }
       }
@@ -841,12 +1077,8 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
             if (dist < 2.5) {
               s.collected = true;
               s.mesh.visible = false;
-              setStarsCollected((prev) => {
-                const next = prev + 1;
-                soundEngine.playStarCollect();
-                confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
-                return next;
-              });
+              soundEngine.playStarCollect();
+              confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
             }
           }
         }
@@ -938,13 +1170,35 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           // Make nametag always face camera like a billboard
           cm.nametagMesh.lookAt(camera.position);
 
-          // Gentle bobbing character animation
-          cm.group.position.y = Math.sin(elapsed * 2.5 + cm.char.position[0]) * 0.15;
+          // Gentle bobbing character animation & continuous arm wave greeting
+          cm.group.position.y = Math.sin(elapsed * 2.5 + cm.char.position[0]) * 0.08;
+          if (cm.waveArm) {
+            cm.waveArm.rotation.z = Math.sin(elapsed * 4 + cm.char.position[0]) * 0.4 + 0.3;
+          }
 
           const dist = playerRef.current!.position.distanceTo(cm.group.position);
           if (dist < 3.5) {
             nearbyChar = cm.char;
           }
+        });
+
+        // Animate Parade Cars moving smoothly around circular promenade
+        paradeCars.forEach((pc) => {
+          pc.baseAngle += pc.speed * delta * 0.25;
+          pc.mesh.position.x = Math.cos(pc.baseAngle) * pc.radius;
+          pc.mesh.position.z = Math.sin(pc.baseAngle) * pc.radius;
+          // Face tangential direction along circle
+          pc.mesh.rotation.y = -pc.baseAngle + (pc.speed > 0 ? Math.PI / 2 : -Math.PI / 2);
+          // Playful slight bouncing ride
+          pc.mesh.position.y = 0.12 + Math.abs(Math.sin(elapsed * 8 + pc.baseAngle)) * 0.04;
+        });
+
+        // Animate Sky Patrol Drones soaring across park
+        skyDrones.forEach((drone, idx) => {
+          drone.group.position.x = Math.sin(elapsed * drone.speed + idx * 2) * drone.radiusX;
+          drone.group.position.z = Math.cos(elapsed * drone.speed + idx * 2) * drone.radiusZ;
+          drone.group.position.y = drone.height + Math.sin(elapsed * 2 + idx) * 0.8;
+          drone.group.rotation.y = elapsed * drone.speed + Math.PI / 2;
         });
 
         if (nearbyChar) {
@@ -1065,25 +1319,31 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           </button>
         </div>
 
-        {/* Right: Kids Stats & Parents Guide */}
+        {/* Right: Real-time Indonesian Clock (WIB/WITA) & Parents Guide */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Star Counter */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-400 text-slate-950 font-black text-xs shadow-md border-2 border-white">
-            <span className="text-sm animate-spin" style={{ animationDuration: '6s' }}>⭐</span>
-            <span>{starsCollected} / 5</span>
+          {/* Real-time Clock Badge with Day/Night indicator */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/95 backdrop-blur-md text-slate-800 font-mono font-bold text-xs shadow-md border-2 border-pink-300">
+            {isNightTime ? (
+              <Moon className="w-3.5 h-3.5 text-indigo-500 fill-indigo-200" />
+            ) : (
+              <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-300" />
+            )}
+            <span>{currentTimeStr || '17:30 WITA'}</span>
+            <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-sans font-black ${
+              isNightTime ? 'bg-indigo-900 text-indigo-100' : 'bg-amber-100 text-amber-800'
+            }`}>
+              {isNightTime ? '🌙 MALAM' : '☀️ SIANG'}
+            </span>
           </div>
 
-          {/* Sound Toggle */}
-          <button
-            onClick={() => {
-              const newMuted = soundEngine.toggleMute();
-              setSoundEnabled(!newMuted);
-            }}
-            className="p-2 rounded-2xl bg-white/90 text-slate-800 hover:bg-white shadow border border-amber-300 cursor-pointer active:scale-95 transition-all"
-            title="Suara Musik Ceria"
+          {/* Sound is permanently LOCKED ON */}
+          <div 
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 font-black text-[11px] shadow-sm"
+            title="Audio & Suara Bicara Terkunci Aktif (Selalu On)"
           >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-pink-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
-          </button>
+            <Volume2 className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+            <span className="hidden sm:inline font-mono">SUARA AKTIF</span>
+          </div>
 
           {/* Parents Safe Zone Badge */}
           <button
@@ -1096,111 +1356,22 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
         </div>
       </header>
 
-      {/* FLOATING ACTION PILLS: Quick Jump to Stations */}
-      <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
-        <button
-          onClick={() => setSelectedVideo(KIDS_VIDEOS[0])}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-black text-[11px] sm:text-xs shadow-lg shadow-rose-500/30 border-2 border-white cursor-pointer transition-all hover:scale-105 active:scale-95"
-        >
-          <Film className="w-3.5 h-3.5" />
-          <span>Buka Bioskop Kartun 🎬</span>
-        </button>
-
-        <button
-          onClick={() => setSelectedAnimal(KIDS_ANIMALS[0])}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-[11px] sm:text-xs shadow-lg shadow-amber-500/30 border-2 border-white cursor-pointer transition-all hover:scale-105 active:scale-95"
-        >
-          <span>🦁</span>
-          <span>Taman Hewan 🐾</span>
-        </button>
-
+      {/* BOTTOM CONTROL: ONLY THE BIG JUMP BUTTON REMAINS */}
+      <div className="absolute bottom-5 right-5 z-30 flex items-center gap-2 pointer-events-auto">
         <button
           onClick={() => {
-            const randomChar = KIDS_CHARACTERS[Math.floor(Math.random() * KIDS_CHARACTERS.length)];
-            setActiveCharacter(randomChar);
-            soundEngine.playProximityChime();
+            if (!isJumpingRef.current && playerRef.current) {
+              isJumpingRef.current = true;
+              jumpVelocityRef.current = 0.35;
+              soundEngine.playJump();
+            }
           }}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-black text-[11px] sm:text-xs shadow-lg shadow-purple-500/30 border-2 border-white cursor-pointer transition-all hover:scale-105 active:scale-95"
+          className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-2xl border-4 border-white cursor-pointer active:scale-90 transition-all select-none"
+          title="Tekan untuk Melompat Tinggi"
         >
-          <span>✨</span>
-          <span>Sapa Sahabat Karakter (5)</span>
+          <span className="text-2xl sm:text-3xl">🚀</span>
+          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">LOMPAT!</span>
         </button>
-      </div>
-
-      {/* BOTTOM CONTROL & INSTRUCTION BAR */}
-      <div className="absolute bottom-3 left-3 right-3 z-30 flex items-end justify-between pointer-events-none">
-        {/* Visual Tip Box */}
-        <div className="p-2.5 sm:p-3 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-pink-400 shadow-xl pointer-events-auto max-w-[280px] sm:max-w-xs space-y-1">
-          <div className="flex items-center gap-1.5 text-pink-600 font-black text-xs">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>DUNIA ANAK FARGAN:</span>
-          </div>
-          <p className="text-[11px] text-slate-700 leading-tight">
-            👉 <strong>Sentuh tanah</strong> untuk berlari, atau <strong>klik karakter lucu</strong> untuk diajak bicara dan nonton YouTube edukasi bersama!
-          </p>
-        </div>
-
-        {/* Bottom Right: Camera Controls (Rotate & Zoom) + Big Jump Button */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Quick Camera Rotate & Zoom Cluster */}
-          <div className="flex flex-col gap-1.5 p-1 rounded-2xl bg-white/90 backdrop-blur-md border-2 border-pink-300 shadow-xl">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => rotateCameraRef.current?.(Math.PI / 4)}
-                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
-                title="Putar Layar Kiri (45°)"
-              >
-                <RotateCcw className="w-4 h-4 text-pink-400" />
-              </button>
-              <button
-                onClick={() => rotateCameraRef.current?.(-Math.PI / 4)}
-                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
-                title="Putar Layar Kanan (45°)"
-              >
-                <RotateCw className="w-4 h-4 text-pink-400" />
-              </button>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => zoomCameraRef.current?.(-4)}
-                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
-                title="Perbesar Layar (Zoom In)"
-              >
-                <ZoomIn className="w-4 h-4 text-amber-400" />
-              </button>
-              <button
-                onClick={() => zoomCameraRef.current?.(4)}
-                className="w-8 h-8 rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow"
-                title="Perkecil Layar (Zoom Out)"
-              >
-                <ZoomOut className="w-4 h-4 text-cyan-400" />
-              </button>
-            </div>
-            <button
-              onClick={() => resetCameraRef.current?.()}
-              className="w-full py-1 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold text-[9px] flex items-center justify-center gap-0.5 cursor-pointer active:scale-95 transition-all"
-              title="Reset Sudut Pandang Kamera"
-            >
-              <Navigation className="w-2.5 h-2.5" />
-              <span>Reset</span>
-            </button>
-          </div>
-
-          {/* Big On-Screen Jump Button for Kids */}
-          <button
-            onClick={() => {
-              if (!isJumpingRef.current && playerRef.current) {
-                isJumpingRef.current = true;
-                jumpVelocityRef.current = 0.35;
-                soundEngine.playJump();
-              }
-            }}
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-2xl border-4 border-white cursor-pointer active:scale-90 transition-all"
-          >
-            <span className="text-lg">🚀</span>
-            <span className="text-[9px] font-black uppercase">LOMPAT!</span>
-          </button>
-        </div>
       </div>
 
       {/* ======================================================== */}
