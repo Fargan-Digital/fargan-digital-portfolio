@@ -74,6 +74,25 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
 
     updateClock();
     const timer = setInterval(updateClock, 1000);
+
+    // Fetch latest characters from Cloudflare KV immediately on mount
+    projectStorage.loadKidsCharacters().then((updatedList) => {
+      if (updatedList && updatedList.length > 0 && characterMeshesRef.current.length > 0) {
+        characterMeshesRef.current.forEach((cm) => {
+          const fresh = updatedList.find(u => u.id === cm.char.id);
+          if (fresh) {
+            cm.char = fresh;
+            // Also update click hitbox userData
+            cm.group.traverse((child) => {
+              if (child.userData?.character) {
+                child.userData.character = fresh;
+              }
+            });
+          }
+        });
+      }
+    });
+
     return () => clearInterval(timer);
   }, []);
 
@@ -2180,10 +2199,9 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
             {/* Video Player */}
             <div className="relative w-full aspect-video bg-black flex-shrink-0">
               <iframe
-                src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`}
+                src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?playsinline=1&rel=0&modestbranding=1`}
                 title={selectedVideo.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
                 className="w-full h-full border-0"
               />
