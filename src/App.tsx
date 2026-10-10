@@ -303,6 +303,8 @@ export function App() {
         <CreativeLoungeWorld 
           onSwitchDimension={setDimension}
           lang={lang}
+          initialGender={gender}
+          onGenderChange={setGender}
         />
       </div>
     );
