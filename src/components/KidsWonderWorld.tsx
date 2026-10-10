@@ -942,6 +942,150 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
       });
     }
 
+    // =========================================================
+    // 7G. LIVELY PARK FRIENDS (TEMAN-TEMAN CILIK YANG IKUT BERMAIN)
+    // 6 Distinct Autonomous Kids: Chasing bubbles, bouncing on trampolines,
+    // chatting with mascot characters, and running joyfully across park
+    // =========================================================
+    type KidState = 'run_target' | 'bounce_trampoline' | 'chat_mascot' | 'wander';
+    interface ParkKidItem {
+      group: THREE.Group;
+      legL: THREE.Mesh;
+      legR: THREE.Mesh;
+      armL: THREE.Mesh;
+      armR: THREE.Mesh;
+      state: KidState;
+      targetPos: THREE.Vector3;
+      timer: number;
+      speed: number;
+      jumpY: number;
+      jumpVy: number;
+      name: string;
+    }
+
+    const parkKids: ParkKidItem[] = [];
+    const kidConfigs = [
+      { name: 'Kenzo 🧢', capColor: 0x3A86FF, shirtColor: 0xFF006E, pantsColor: 0x1E293B, start: new THREE.Vector3(-14, 0, 10) },
+      { name: 'Alya 🎀', capColor: 0xFF70A6, shirtColor: 0xFFBE0B, pantsColor: 0x3A86FF, start: new THREE.Vector3(12, 0, -8) },
+      { name: 'Rafa 🦖', capColor: 0x06D6A0, shirtColor: 0x118AB2, pantsColor: 0x073B4C, start: new THREE.Vector3(-22, 0, -12) },
+      { name: 'Kimi 🐱', capColor: 0x8338EC, shirtColor: 0xFB5607, pantsColor: 0x1E293B, start: new THREE.Vector3(22, 0, -12) },
+      { name: 'Salsa 🌸', capColor: 0xFFD166, shirtColor: 0x06D6A0, pantsColor: 0x8338EC, start: new THREE.Vector3(8, 0, 20) },
+      { name: 'Bima ⚡', capColor: 0xEF476F, shirtColor: 0x3A86FF, pantsColor: 0x118AB2, start: new THREE.Vector3(-18, 0, 24) },
+    ];
+
+    kidConfigs.forEach((cfg) => {
+      const kGroup = new THREE.Group();
+      kGroup.position.copy(cfg.start);
+
+      // Cute Voxel Kid Head
+      const kHead = new THREE.Mesh(
+        new THREE.BoxGeometry(0.9, 0.9, 0.9),
+        new THREE.MeshStandardMaterial({ color: 0xFDE2CA, roughness: 0.5 })
+      );
+      kHead.position.y = 1.7;
+      kHead.castShadow = true;
+      kGroup.add(kHead);
+
+      // Hat / Cap
+      const kCap = new THREE.Mesh(
+        new THREE.BoxGeometry(1.0, 0.25, 1.1),
+        new THREE.MeshStandardMaterial({ color: cfg.capColor, roughness: 0.3 })
+      );
+      kCap.position.set(0, 2.18, 0.05);
+      kGroup.add(kCap);
+
+      // Eyes
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0F172A });
+      const kEyeL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.08), eyeMat);
+      kEyeL.position.set(-0.22, 1.76, 0.46);
+      const kEyeR = kEyeL.clone();
+      kEyeR.position.set(0.22, 1.76, 0.46);
+      kGroup.add(kEyeL, kEyeR);
+
+      // Smile
+      const kSmile = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.08), new THREE.MeshBasicMaterial({ color: 0xD90429 }));
+      kSmile.position.set(0, 1.5, 0.46);
+      kGroup.add(kSmile);
+
+      // Torso / Colorful Hoodie
+      const kTorso = new THREE.Mesh(
+        new THREE.BoxGeometry(1.05, 1.0, 0.65),
+        new THREE.MeshStandardMaterial({ color: cfg.shirtColor, roughness: 0.4 })
+      );
+      kTorso.position.y = 0.95;
+      kTorso.castShadow = true;
+      kGroup.add(kTorso);
+
+      // Arms
+      const armGeo = new THREE.BoxGeometry(0.3, 0.85, 0.35);
+      const armMat = new THREE.MeshStandardMaterial({ color: cfg.shirtColor, roughness: 0.4 });
+      const armL = new THREE.Mesh(armGeo, armMat);
+      armL.position.set(-0.68, 0.95, 0);
+      armL.castShadow = true;
+      kGroup.add(armL);
+
+      const armR = new THREE.Mesh(armGeo, armMat);
+      armR.position.set(0.68, 0.95, 0);
+      armR.castShadow = true;
+      kGroup.add(armR);
+
+      // Legs
+      const legGeo = new THREE.BoxGeometry(0.38, 0.75, 0.4);
+      const legMat = new THREE.MeshStandardMaterial({ color: cfg.pantsColor, roughness: 0.5 });
+      const legL = new THREE.Mesh(legGeo, legMat);
+      legL.position.set(-0.25, 0.38, 0);
+      legL.castShadow = true;
+      kGroup.add(legL);
+
+      const legR = new THREE.Mesh(legGeo, legMat);
+      legR.position.set(0.25, 0.38, 0);
+      legR.castShadow = true;
+      kGroup.add(legR);
+
+      // Friendly floating player tag
+      const tagCanvas = document.createElement('canvas');
+      tagCanvas.width = 180;
+      tagCanvas.height = 60;
+      const tctx = tagCanvas.getContext('2d');
+      if (tctx) {
+        tctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        tctx.roundRect(4, 4, 172, 52, 16);
+        tctx.fill();
+        tctx.strokeStyle = `#${cfg.capColor.toString(16).padStart(6, '0')}`;
+        tctx.lineWidth = 4;
+        tctx.stroke();
+
+        tctx.fillStyle = '#0F172A';
+        tctx.font = 'bold 22px sans-serif';
+        tctx.textAlign = 'center';
+        tctx.fillText(cfg.name, 90, 36);
+      }
+      const tagTex = new THREE.CanvasTexture(tagCanvas);
+      const tagMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.0, 0.65),
+        new THREE.MeshBasicMaterial({ map: tagTex, transparent: true, side: THREE.DoubleSide })
+      );
+      tagMesh.position.set(0, 2.65, 0);
+      kGroup.add(tagMesh);
+
+      scene.add(kGroup);
+
+      parkKids.push({
+        group: kGroup,
+        legL,
+        legR,
+        armL,
+        armR,
+        state: 'wander',
+        targetPos: new THREE.Vector3((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40),
+        timer: Math.random() * 5,
+        speed: 5.5 + Math.random() * 3.5,
+        jumpY: 0,
+        jumpVy: 0,
+        name: cfg.name
+      });
+    });
+
     // 8. CHIBI AVATAR (FARGAN JUNIOR)
     const player = new THREE.Group();
     player.position.set(0, 0, 8);
@@ -1411,6 +1555,89 @@ export const KidsWonderWorld: React.FC<KidsWonderWorldProps> = ({ onSwitchDimens
           drone.group.position.z = Math.cos(elapsed * drone.speed + idx * 2) * drone.radiusZ;
           drone.group.position.y = drone.height + Math.sin(elapsed * 2 + idx) * 0.8;
           drone.group.rotation.y = elapsed * drone.speed + Math.PI / 2;
+        });
+
+        // =========================================================
+        // ANIMATE LIVELY PARK KIDS (TEMAN-TEMAN CILIK BERMAIN AKTIF)
+        // Autonomous behaviors: Running, bouncing on trampolines, chasing bubbles, chatting
+        // =========================================================
+        parkKids.forEach((kid, kIdx) => {
+          kid.timer -= delta;
+
+          // State Machine Transitions
+          if (kid.timer <= 0) {
+            kid.timer = 5 + Math.random() * 6;
+            const rChoice = Math.random();
+
+            if (rChoice < 0.3) {
+              // Target nearest trampoline
+              const tTarget = trampolines[kIdx % trampolines.length];
+              kid.state = 'bounce_trampoline';
+              kid.targetPos.set(tTarget.pos.x + (Math.random() - 0.5) * 1.5, 0, tTarget.pos.z + (Math.random() - 0.5) * 1.5);
+            } else if (rChoice < 0.6) {
+              // Target one of the 5 mascot characters to chat/visit
+              const charTarget = KIDS_CHARACTERS[Math.floor(Math.random() * KIDS_CHARACTERS.length)];
+              kid.state = 'chat_mascot';
+              kid.targetPos.set(charTarget.position[0] + (Math.random() - 0.5) * 3, 0, charTarget.position[2] + (Math.random() - 0.5) * 3);
+            } else {
+              // Wander freely to random spot
+              kid.state = 'wander';
+              const randAng = Math.random() * Math.PI * 2;
+              const randR = 10 + Math.random() * 45;
+              kid.targetPos.set(Math.cos(randAng) * randR, 0, Math.sin(randAng) * randR);
+            }
+          }
+
+          // Movement toward target
+          const kidCurPos = new THREE.Vector3(kid.group.position.x, 0, kid.group.position.z);
+          const kDir = new THREE.Vector3().subVectors(kid.targetPos, kidCurPos);
+          const kDist = kDir.length();
+
+          if (kDist > 0.6) {
+            kDir.normalize();
+            kid.group.position.x += kDir.x * kid.speed * delta;
+            kid.group.position.z += kDir.z * kid.speed * delta;
+            kid.group.rotation.y = Math.atan2(kDir.x, kDir.z);
+
+            // Bouncy run leg & arm swing
+            const runCycle = elapsed * 14 + kIdx;
+            kid.legL.rotation.x = Math.sin(runCycle) * 0.65;
+            kid.legR.rotation.x = -Math.sin(runCycle) * 0.65;
+            kid.armL.rotation.x = -Math.sin(runCycle) * 0.6;
+            kid.armR.rotation.x = Math.sin(runCycle) * 0.6;
+          } else {
+            // Idle or Action at destination
+            kid.legL.rotation.x = 0;
+            kid.legR.rotation.x = 0;
+
+            if (kid.state === 'bounce_trampoline') {
+              // Jump bouncy on trampoline pad
+              if (kid.jumpY <= 0) {
+                kid.jumpVy = 0.42;
+              }
+              kid.jumpY += kid.jumpVy;
+              kid.jumpVy -= 0.018;
+              if (kid.jumpY < 0) {
+                kid.jumpY = 0;
+                kid.jumpVy = 0;
+              }
+              kid.group.position.y = kid.jumpY;
+              // Arms raised in excitement!
+              kid.armL.rotation.z = 0.8;
+              kid.armR.rotation.z = -0.8;
+            } else if (kid.state === 'chat_mascot') {
+              // Friendly wave arm to character
+              kid.group.position.y = 0;
+              kid.armL.rotation.z = Math.sin(elapsed * 5 + kIdx) * 0.5 + 0.3;
+              kid.armR.rotation.z = 0;
+            } else {
+              kid.group.position.y = 0;
+              kid.armL.rotation.x = 0;
+              kid.armR.rotation.x = 0;
+              kid.armL.rotation.z = 0;
+              kid.armR.rotation.z = 0;
+            }
+          }
         });
 
         if (nearbyChar) {
